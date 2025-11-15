@@ -1,58 +1,80 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { X, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface PropertiesPanelProps {
   element: any;
-  properties: any;
-  onPropertiesChange: (properties: any) => void;
+  onPropertiesUpdate: (properties: any) => void;
+  onPropertiesSave: (properties: any) => void;
 }
 
-const PropertiesPanel = ({ element, properties, onPropertiesChange }: PropertiesPanelProps) => {
-  const [text, setText] = useState(properties.text || "");
-  const [width, setWidth] = useState(properties.width || "");
-  const [fontSize, setFontSize] = useState(properties.fontSize || "");
-  const [comment, setComment] = useState(properties.comment || "");
+const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave }: PropertiesPanelProps) => {
+  const [text, setText] = useState("");
+  const [color, setColor] = useState("");
+  const [backgroundColor, setBackgroundColor] = useState("");
+  const [fontSize, setFontSize] = useState("");
+  const [width, setWidth] = useState("");
+  const [height, setHeight] = useState("");
+  const [padding, setPadding] = useState("");
+  const [margin, setMargin] = useState("");
+  const [comment, setComment] = useState("");
   const { toast } = useToast();
 
-  const handleSave = async () => {
-    const newProperties = {
-      text,
-      width,
+  // Update form when element changes
+  useEffect(() => {
+    if (element) {
+      setText(element.textContent || "");
+      setColor(element.styles?.color || "");
+      setBackgroundColor(element.styles?.backgroundColor || "");
+      setFontSize(element.styles?.fontSize || "");
+      setWidth(element.styles?.width || "");
+      setHeight(element.styles?.height || "");
+      setPadding(element.styles?.padding || "");
+      setMargin(element.styles?.margin || "");
+      setComment("");
+    }
+  }, [element]);
+
+  // Send real-time updates
+  useEffect(() => {
+    const properties = {
+      textContent: text,
+      color,
+      backgroundColor,
       fontSize,
+      width,
+      height,
+      padding,
+      margin,
+    };
+    onPropertiesUpdate(properties);
+  }, [text, color, backgroundColor, fontSize, width, height, padding, margin, onPropertiesUpdate]);
+
+  const handleSave = () => {
+    const properties = {
+      textContent: text,
+      color,
+      backgroundColor,
+      fontSize,
+      width,
+      height,
+      padding,
+      margin,
       comment,
     };
 
-    try {
-      const { data, error } = await supabase.functions.invoke("properties", {
-        body: {
-          elementId: element?.id,
-          properties: newProperties,
-        },
-      });
-
-      if (error) throw error;
-
-      onPropertiesChange(newProperties);
-      toast({
-        title: "Properties Updated",
-        description: "Element properties have been saved",
-      });
-    } catch (error: any) {
-      console.error("Error saving properties:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save properties",
-        variant: "destructive",
-      });
-    }
+    onPropertiesSave(properties);
+    
+    toast({
+      title: "Sent to AI",
+      description: "Property changes have been sent to the AI assistant",
+    });
   };
 
   return (
@@ -80,14 +102,28 @@ const PropertiesPanel = ({ element, properties, onPropertiesChange }: Properties
             />
           </div>
 
-          {/* Width */}
+          <Separator />
+
+          {/* Color */}
           <div className="space-y-2">
-            <Label htmlFor="width">Width</Label>
+            <Label htmlFor="color">Color</Label>
             <Input
-              id="width"
-              value={width}
-              onChange={(e) => setWidth(e.target.value)}
-              placeholder="e.g., 100%, 300px"
+              id="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              placeholder="e.g., #000000, rgb(0,0,0)"
+              className="bg-secondary border-border"
+            />
+          </div>
+
+          {/* Background Color */}
+          <div className="space-y-2">
+            <Label htmlFor="backgroundColor">Background Color</Label>
+            <Input
+              id="backgroundColor"
+              value={backgroundColor}
+              onChange={(e) => setBackgroundColor(e.target.value)}
+              placeholder="e.g., #ffffff, transparent"
               className="bg-secondary border-border"
             />
           </div>
@@ -106,14 +142,64 @@ const PropertiesPanel = ({ element, properties, onPropertiesChange }: Properties
 
           <Separator />
 
+          {/* Width */}
+          <div className="space-y-2">
+            <Label htmlFor="width">Width</Label>
+            <Input
+              id="width"
+              value={width}
+              onChange={(e) => setWidth(e.target.value)}
+              placeholder="e.g., 100%, 300px"
+              className="bg-secondary border-border"
+            />
+          </div>
+
+          {/* Height */}
+          <div className="space-y-2">
+            <Label htmlFor="height">Height</Label>
+            <Input
+              id="height"
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+              placeholder="e.g., auto, 200px"
+              className="bg-secondary border-border"
+            />
+          </div>
+
+          {/* Padding */}
+          <div className="space-y-2">
+            <Label htmlFor="padding">Padding</Label>
+            <Input
+              id="padding"
+              value={padding}
+              onChange={(e) => setPadding(e.target.value)}
+              placeholder="e.g., 10px, 1rem 2rem"
+              className="bg-secondary border-border"
+            />
+          </div>
+
+          {/* Margin */}
+          <div className="space-y-2">
+            <Label htmlFor="margin">Margin</Label>
+            <Input
+              id="margin"
+              value={margin}
+              onChange={(e) => setMargin(e.target.value)}
+              placeholder="e.g., 10px, 1rem auto"
+              className="bg-secondary border-border"
+            />
+          </div>
+
+          <Separator />
+
           {/* Comment */}
           <div className="space-y-2">
-            <Label htmlFor="comment">Comment</Label>
+            <Label htmlFor="comment">Comment for AI</Label>
             <Textarea
               id="comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Add a comment about this element..."
+              placeholder="Add instructions for AI about this element..."
               className="resize-none bg-secondary border-border"
               rows={4}
             />
@@ -125,8 +211,11 @@ const PropertiesPanel = ({ element, properties, onPropertiesChange }: Properties
       <div className="p-4 border-t border-border">
         <Button onClick={handleSave} className="w-full gap-2">
           <Save className="w-4 h-4" />
-          Save Properties
+          Send to AI
         </Button>
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          Changes apply in real-time
+        </p>
       </div>
     </div>
   );
