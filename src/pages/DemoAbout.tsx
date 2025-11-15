@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 
 const DemoAbout = () => {
   const location = useLocation();
+  const [mode, setMode] = useState<"preview" | "edit">("edit");
 
   // Send context updates to parent window
   useEffect(() => {
@@ -33,21 +34,76 @@ const DemoAbout = () => {
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (window.parent !== window) {
+      
+      if (mode === "edit" && window.parent !== window) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Generate unique ID for element
+        const elementId = `${target.tagName.toLowerCase()}_${Date.now()}`;
+        target.setAttribute('data-element-id', elementId);
+        
+        // Get computed styles
+        const styles = window.getComputedStyle(target);
+        
+        // Get direct text content only (not including children)
+        let directText = "";
+        for (let node of Array.from(target.childNodes)) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            directText += node.textContent;
+          }
+        }
+        directText = directText.trim();
+        
         window.parent.postMessage({
           type: "element-click",
           element: {
+            elementId,
             tagName: target.tagName,
             id: target.id,
             className: target.className,
-            textContent: target.textContent?.substring(0, 100),
+            textContent: directText || (target.children.length > 0 ? `[${target.children.length} children]` : ""),
+            styles: {
+              color: styles.color,
+              backgroundColor: styles.backgroundColor,
+              fontSize: styles.fontSize,
+              width: styles.width,
+              height: styles.height,
+              padding: styles.padding,
+              margin: styles.margin,
+            }
           }
         }, "*");
       }
     };
 
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
+    document.addEventListener("click", handleClick, true);
+    return () => document.removeEventListener("click", handleClick, true);
+  }, [mode]);
+
+  // Listen for property updates and mode changes from parent
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === "update-properties") {
+        const element = document.querySelector(`[data-element-id="${event.data.elementId}"]`) as HTMLElement;
+        if (element && event.data.properties) {
+          const props = event.data.properties;
+          if (props.textContent) element.textContent = props.textContent;
+          if (props.color) element.style.color = props.color;
+          if (props.backgroundColor) element.style.backgroundColor = props.backgroundColor;
+          if (props.fontSize) element.style.fontSize = props.fontSize;
+          if (props.width) element.style.width = props.width;
+          if (props.height) element.style.height = props.height;
+          if (props.padding) element.style.padding = props.padding;
+          if (props.margin) element.style.margin = props.margin;
+        }
+      } else if (event.data.type === "set-mode") {
+        setMode(event.data.mode);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   return (
