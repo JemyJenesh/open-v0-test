@@ -39,9 +39,12 @@ const DemoAbout = () => {
         e.preventDefault();
         e.stopPropagation();
         
-        // Generate unique ID for element
-        const elementId = `${target.tagName.toLowerCase()}_${Date.now()}`;
-        target.setAttribute('data-element-id', elementId);
+        // Generate unique ID for element only if it doesn't have one
+        let elementId = target.getAttribute('data-element-id');
+        if (!elementId) {
+          elementId = `${target.tagName.toLowerCase()}_${Date.now()}`;
+          target.setAttribute('data-element-id', elementId);
+        }
         
         // Get computed styles
         const styles = window.getComputedStyle(target);
