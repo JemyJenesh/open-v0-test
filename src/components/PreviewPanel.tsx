@@ -1,15 +1,17 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, RefreshCw, Folder } from "lucide-react";
+import { Play, RefreshCw, Folder, Eye, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PreviewPanelProps {
   onElementSelect: (element: any) => void;
   selectedElement: any;
   onContextChange: (context: any) => void;
+  mode: "preview" | "edit";
+  onModeChange: (mode: "preview" | "edit") => void;
 }
 
-const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextChange }: PreviewPanelProps, ref) => {
+const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextChange, mode, onModeChange }: PreviewPanelProps, ref) => {
   const [iframeUrl, setIframeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -19,7 +21,6 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
     setIframeUrl("/demo-app");
   }, []);
 
-  // Expose methods to parent
   useImperativeHandle(ref, () => ({
     updateElementProperties: (element: any, properties: any) => {
       const iframe = document.getElementById("preview-iframe") as HTMLIFrameElement;
@@ -32,6 +33,17 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
       }
     }
   }));
+
+  // Notify iframe of mode changes
+  useEffect(() => {
+    const iframe = document.getElementById("preview-iframe") as HTMLIFrameElement;
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: "set-mode",
+        mode
+      }, "*");
+    }
+  }, [mode]);
 
   // Listen for messages from the iframe
   useEffect(() => {
@@ -87,9 +99,29 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
           Refresh
         </Button>
         <div className="flex-1" />
+        <div className="flex gap-2 items-center">
+          <Button
+            variant={mode === "preview" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onModeChange("preview")}
+            className="gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            Preview
+          </Button>
+          <Button
+            variant={mode === "edit" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onModeChange("edit")}
+            className="gap-2"
+          >
+            <Edit className="w-4 h-4" />
+            Edit
+          </Button>
+        </div>
         <div className="text-xs text-muted-foreground flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-500" />
-          Preview Active
+          {mode === "preview" ? "Preview Mode" : "Edit Mode"}
         </div>
       </div>
 

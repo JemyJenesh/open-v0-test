@@ -211,7 +211,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave }: Prop
       <div className="p-4 border-t border-border">
         <Button onClick={handleSave} className="w-full gap-2">
           <Save className="w-4 h-4" />
-          Send to AI
+          Save
         </Button>
         <p className="text-xs text-muted-foreground mt-2 text-center">
           Changes apply in real-time

@@ -3,6 +3,7 @@ import { useLocation, Link } from "react-router-dom";
 
 const DemoApp = () => {
   const [count, setCount] = useState(0);
+  const [mode, setMode] = useState<"preview" | "edit">("edit");
   const location = useLocation();
 
   // Send context updates to parent window
@@ -33,44 +34,49 @@ const DemoApp = () => {
   // Handle element clicks
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      e.preventDefault();
       const target = e.target as HTMLElement;
       
-      // Generate unique ID for element
-      const elementId = `${target.tagName.toLowerCase()}_${Date.now()}`;
-      target.setAttribute('data-element-id', elementId);
-      
-      // Get computed styles
-      const styles = window.getComputedStyle(target);
-      
-      if (window.parent !== window) {
-        window.parent.postMessage({
-          type: "element-click",
-          element: {
-            elementId,
-            tagName: target.tagName,
-            id: target.id,
-            className: target.className,
-            textContent: target.textContent?.substring(0, 100),
-            styles: {
-              color: styles.color,
-              backgroundColor: styles.backgroundColor,
-              fontSize: styles.fontSize,
-              width: styles.width,
-              height: styles.height,
-              padding: styles.padding,
-              margin: styles.margin,
+      if (mode === "edit") {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Generate unique ID for element
+        const elementId = `${target.tagName.toLowerCase()}_${Date.now()}`;
+        target.setAttribute('data-element-id', elementId);
+        
+        // Get computed styles
+        const styles = window.getComputedStyle(target);
+        
+        if (window.parent !== window) {
+          window.parent.postMessage({
+            type: "element-click",
+            element: {
+              elementId,
+              tagName: target.tagName,
+              id: target.id,
+              className: target.className,
+              textContent: target.textContent?.substring(0, 100),
+              styles: {
+                color: styles.color,
+                backgroundColor: styles.backgroundColor,
+                fontSize: styles.fontSize,
+                width: styles.width,
+                height: styles.height,
+                padding: styles.padding,
+                margin: styles.margin,
+              }
             }
-          }
-        }, "*");
+          }, "*");
+        }
       }
+      // In preview mode, let clicks behave normally
     };
 
     document.addEventListener("click", handleClick, true);
     return () => document.removeEventListener("click", handleClick, true);
-  }, []);
+  }, [mode]);
 
-  // Listen for property updates from parent
+  // Listen for property updates and mode changes from parent
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === "update-properties") {
@@ -86,6 +92,8 @@ const DemoApp = () => {
           if (props.padding) element.style.padding = props.padding;
           if (props.margin) element.style.margin = props.margin;
         }
+      } else if (event.data.type === "set-mode") {
+        setMode(event.data.mode);
       }
     };
 
