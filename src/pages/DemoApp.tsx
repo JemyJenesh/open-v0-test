@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 
 const DemoApp = () => {
   const [count, setCount] = useState(0);
@@ -54,6 +54,19 @@ const DemoApp = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
       <div className="max-w-4xl mx-auto">
+        {/* Navigation */}
+        <nav className="mb-8 flex gap-4">
+          <Link to="/demo-app" className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:shadow-md transition-shadow">
+            Home
+          </Link>
+          <Link to="/demo-app/about" className="px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+            About
+          </Link>
+          <Link to="/demo-app/contact" className="px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+            Contact
+          </Link>
+        </nav>
+
         {/* Header */}
         <header className="mb-12">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
