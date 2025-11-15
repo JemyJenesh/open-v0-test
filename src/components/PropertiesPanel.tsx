@@ -101,19 +101,22 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
       {/* Properties Form */}
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
-          {/* Text Content */}
-          <div className="space-y-2">
-            <Label htmlFor="text">Text Content</Label>
-            <Input
-              id="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Enter text..."
-              className="bg-secondary border-border"
-            />
-          </div>
-
-          <Separator />
+          {/* Text Content - only show if element has direct text */}
+          {text && !text.startsWith('[') && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="text">Text Content</Label>
+                <Input
+                  id="text"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Enter text..."
+                  className="bg-secondary border-border"
+                />
+              </div>
+              <Separator />
+            </>
+          )}
 
           {/* Color */}
           <div className="space-y-2">
