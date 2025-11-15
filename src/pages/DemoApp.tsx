@@ -1,7 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 const DemoApp = () => {
   const [count, setCount] = useState(0);
+  const location = useLocation();
+
+  // Send context updates to parent window
+  useEffect(() => {
+    const sendContext = () => {
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: "demo-context",
+          context: {
+            route: location.pathname,
+            scrollPosition: { x: window.scrollX, y: window.scrollY },
+            viewport: { width: window.innerWidth, height: window.innerHeight },
+          }
+        }, "*");
+      }
+    };
+
+    sendContext();
+    window.addEventListener("scroll", sendContext);
+    window.addEventListener("resize", sendContext);
+
+    return () => {
+      window.removeEventListener("scroll", sendContext);
+      window.removeEventListener("resize", sendContext);
+    };
+  }, [location.pathname]);
+
+  // Handle element clicks
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: "element-click",
+          element: {
+            tagName: target.tagName,
+            id: target.id,
+            className: target.className,
+            textContent: target.textContent?.substring(0, 100),
+          }
+        }, "*");
+      }
+    };
+
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">

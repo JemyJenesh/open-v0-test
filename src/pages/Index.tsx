@@ -6,12 +6,17 @@ import PropertiesPanel from "@/components/PropertiesPanel";
 const Index = () => {
   const [selectedElement, setSelectedElement] = useState<any>(null);
   const [properties, setProperties] = useState<any>({});
+  const [demoContext, setDemoContext] = useState<any>({
+    route: "/demo-app",
+    scrollPosition: { x: 0, y: 0 },
+    viewport: { width: 0, height: 0 },
+  });
 
   return (
     <div className="flex h-screen w-full bg-editor overflow-hidden">
       {/* Chat Panel - Left */}
       <div className="w-96 border-r border-border flex-shrink-0">
-        <ChatPanel />
+        <ChatPanel demoContext={demoContext} selectedElement={selectedElement} />
       </div>
 
       {/* Preview Panel - Center */}
@@ -19,6 +24,7 @@ const Index = () => {
         <PreviewPanel 
           onElementSelect={setSelectedElement}
           selectedElement={selectedElement}
+          onContextChange={setDemoContext}
         />
       </div>
 

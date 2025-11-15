@@ -11,16 +11,28 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, context } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    let contextInfo = "";
+    if (context) {
+      contextInfo = `\n\nCurrent context:
+- Route: ${context.route || "unknown"}
+- Viewport: ${context.viewport?.width || 0}x${context.viewport?.height || 0}
+- Scroll position: x:${context.scrollPosition?.x || 0}, y:${context.scrollPosition?.y || 0}`;
+      
+      if (context.selectedElement) {
+        contextInfo += `\n- Selected element: <${context.selectedElement.tagName}>${context.selectedElement.text ? ' "' + context.selectedElement.text + '"' : ''}`;
+      }
+    }
+
     const systemPrompt = `You are an AI assistant helping to build React applications. 
 You can help users design components, write code, and provide guidance on best practices.
-Be concise and helpful in your responses.`;
+Be concise and helpful in your responses.${contextInfo}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
