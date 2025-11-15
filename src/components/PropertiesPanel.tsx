@@ -106,12 +106,12 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
             <>
               <div className="space-y-2">
                 <Label htmlFor="text">Text Content</Label>
-                <Input
+                <Textarea
                   id="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Enter text..."
-                  className="bg-secondary border-border"
+                  className="bg-secondary border-border min-h-[100px] resize-y"
                 />
               </div>
               <Separator />
