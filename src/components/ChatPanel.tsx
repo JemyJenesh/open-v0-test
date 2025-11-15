@@ -31,7 +31,7 @@ const ChatPanel = forwardRef(({ demoContext, selectedElement }: ChatPanelProps, 
 
   // Expose method to send property updates
   useImperativeHandle(ref, () => ({
-    sendPropertyUpdate: (element: any, properties: any) => {
+    sendPropertyUpdate: async (element: any, properties: any) => {
       const message = `Update element properties:
 Element: ${element.tagName} ${element.id ? `#${element.id}` : ''}${element.className ? `.${element.className.split(' ')[0]}` : ''}
 Current text: "${element.textContent?.substring(0, 50)}"
@@ -39,7 +39,42 @@ Current text: "${element.textContent?.substring(0, 50)}"
 New properties:
 ${properties.textContent !== element.textContent ? `- Text: "${properties.textContent}"\n` : ''}${properties.color ? `- Color: ${properties.color}\n` : ''}${properties.backgroundColor ? `- Background: ${properties.backgroundColor}\n` : ''}${properties.fontSize ? `- Font size: ${properties.fontSize}\n` : ''}${properties.width ? `- Width: ${properties.width}\n` : ''}${properties.height ? `- Height: ${properties.height}\n` : ''}${properties.padding ? `- Padding: ${properties.padding}\n` : ''}${properties.margin ? `- Margin: ${properties.margin}\n` : ''}${properties.comment ? `\nAdditional instructions: ${properties.comment}` : ''}`;
       
-      setInput(message);
+      // Send immediately instead of just setting input
+      const userMessage: Message = { role: "user", content: message };
+      setMessages((prev) => [...prev, userMessage]);
+      setIsLoading(true);
+
+      try {
+        const { data, error } = await supabase.functions.invoke("chat", {
+          body: { 
+            messages: [...messages, userMessage],
+            context: {
+              route: demoContext.route,
+              scrollPosition: demoContext.scrollPosition,
+              viewport: demoContext.viewport,
+              selectedElement: element ? {
+                tagName: element.tagName,
+                id: element.id,
+                className: element.className,
+                text: element.textContent?.substring(0, 100),
+              } : null,
+            }
+          },
+        });
+
+        if (error) throw error;
+
+        setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+      } catch (error: any) {
+        console.error("Chat error:", error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send message",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
   }));
 

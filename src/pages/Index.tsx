@@ -10,6 +10,7 @@ const Index = () => {
     scrollPosition: { x: 0, y: 0 },
     viewport: { width: 0, height: 0 },
   });
+  const [mode, setMode] = useState<"preview" | "edit">("edit");
   const previewPanelRef = useRef<any>(null);
   const chatPanelRef = useRef<any>(null);
 
@@ -20,10 +21,10 @@ const Index = () => {
     }
   };
 
-  const handlePropertiesSave = (properties: any) => {
-    // Send to AI chat
+  const handlePropertiesSave = async (properties: any) => {
+    // Send directly to AI chat
     if (chatPanelRef.current) {
-      chatPanelRef.current.sendPropertyUpdate(selectedElement, properties);
+      await chatPanelRef.current.sendPropertyUpdate(selectedElement, properties);
     }
   };
 
@@ -45,6 +46,8 @@ const Index = () => {
           onElementSelect={setSelectedElement}
           selectedElement={selectedElement}
           onContextChange={setDemoContext}
+          mode={mode}
+          onModeChange={setMode}
         />
       </div>
 
