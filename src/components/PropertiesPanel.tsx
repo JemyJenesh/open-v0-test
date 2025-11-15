@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -145,13 +147,43 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Font Size */}
           <div className="space-y-2">
             <Label htmlFor="fontSize">Font Size</Label>
-            <Input
-              id="fontSize"
-              value={fontSize}
-              onChange={(e) => setFontSize(e.target.value)}
-              placeholder="e.g., 16px, 1rem"
-              className="bg-secondary border-border"
-            />
+            {element?.commonValues?.fontSize && element.commonValues.fontSize.length > 1 ? (
+              <div className="space-y-2">
+                <Select value={fontSize} onValueChange={setFontSize}>
+                  <SelectTrigger className="bg-secondary border-border">
+                    <SelectValue placeholder="Select font size" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    {element.commonValues.fontSize.map((value: string) => (
+                      <SelectItem key={value} value={value}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fontSize && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Fine-tune ({fontSize})</Label>
+                    <Slider
+                      value={[parseFloat(fontSize) || 16]}
+                      onValueChange={(value) => setFontSize(`${value[0]}px`)}
+                      min={8}
+                      max={72}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Input
+                id="fontSize"
+                value={fontSize}
+                onChange={(e) => setFontSize(e.target.value)}
+                placeholder="e.g., 16px, 1rem"
+                className="bg-secondary border-border"
+              />
+            )}
           </div>
 
           <Separator />
