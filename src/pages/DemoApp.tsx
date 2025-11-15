@@ -56,6 +56,31 @@ const DemoApp = () => {
         // Get computed styles
         const styles = window.getComputedStyle(target);
         
+        // Analyze all elements of the same type on the page
+        const sameTypeElements = document.querySelectorAll(target.tagName.toLowerCase());
+        const commonValues: Record<string, Set<string>> = {
+          fontSize: new Set(),
+          color: new Set(),
+          backgroundColor: new Set(),
+          padding: new Set(),
+          margin: new Set(),
+        };
+        
+        sameTypeElements.forEach((el) => {
+          const elStyles = window.getComputedStyle(el as HTMLElement);
+          commonValues.fontSize.add(elStyles.fontSize);
+          commonValues.color.add(elStyles.color);
+          commonValues.backgroundColor.add(elStyles.backgroundColor);
+          commonValues.padding.add(elStyles.padding);
+          commonValues.margin.add(elStyles.margin);
+        });
+        
+        // Convert sets to arrays and limit to top 5 values
+        const commonValuesObj: Record<string, string[]> = {};
+        Object.keys(commonValues).forEach(key => {
+          commonValuesObj[key] = Array.from(commonValues[key]).slice(0, 5);
+        });
+        
         // Get direct text content only (not including children)
         let directText = "";
         for (let node of Array.from(target.childNodes)) {
@@ -82,7 +107,8 @@ const DemoApp = () => {
                 height: styles.height,
                 padding: styles.padding,
                 margin: styles.margin,
-              }
+              },
+              commonValues: commonValuesObj,
             }
           }, "*");
         }
