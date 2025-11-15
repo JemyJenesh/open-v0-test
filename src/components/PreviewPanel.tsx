@@ -6,9 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 interface PreviewPanelProps {
   onElementSelect: (element: any) => void;
   selectedElement: any;
+  onContextChange: (context: any) => void;
 }
 
-const PreviewPanel = ({ onElementSelect, selectedElement }: PreviewPanelProps) => {
+const PreviewPanel = ({ onElementSelect, selectedElement, onContextChange }: PreviewPanelProps) => {
   const [iframeUrl, setIframeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -17,6 +18,20 @@ const PreviewPanel = ({ onElementSelect, selectedElement }: PreviewPanelProps) =
   useEffect(() => {
     setIframeUrl("/demo-app");
   }, []);
+
+  // Listen for messages from the iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === "demo-context") {
+        onContextChange(event.data.context);
+      } else if (event.data.type === "element-click") {
+        onElementSelect(event.data.element);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [onContextChange, onElementSelect]);
 
   const handleRefresh = () => {
     setIsLoading(true);

@@ -11,7 +11,12 @@ interface Message {
   content: string;
 }
 
-const ChatPanel = () => {
+interface ChatPanelProps {
+  demoContext: any;
+  selectedElement: any;
+}
+
+const ChatPanel = ({ demoContext, selectedElement }: ChatPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +39,20 @@ const ChatPanel = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke("chat", {
-        body: { messages: [...messages, userMessage] },
+        body: { 
+          messages: [...messages, userMessage],
+          context: {
+            route: demoContext.route,
+            scrollPosition: demoContext.scrollPosition,
+            viewport: demoContext.viewport,
+            selectedElement: selectedElement ? {
+              tagName: selectedElement.tagName,
+              id: selectedElement.id,
+              className: selectedElement.className,
+              text: selectedElement.textContent?.substring(0, 100),
+            } : null,
+          }
+        },
       });
 
       if (error) throw error;
