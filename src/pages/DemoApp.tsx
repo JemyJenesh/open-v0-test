@@ -47,6 +47,15 @@ const DemoApp = () => {
         // Get computed styles
         const styles = window.getComputedStyle(target);
         
+        // Get direct text content only (not including children)
+        let directText = "";
+        for (let node of Array.from(target.childNodes)) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            directText += node.textContent;
+          }
+        }
+        directText = directText.trim();
+        
         if (window.parent !== window) {
           window.parent.postMessage({
             type: "element-click",
@@ -55,7 +64,7 @@ const DemoApp = () => {
               tagName: target.tagName,
               id: target.id,
               className: target.className,
-              textContent: target.textContent?.substring(0, 100),
+              textContent: directText || (target.children.length > 0 ? `[${target.children.length} children]` : ""),
               styles: {
                 color: styles.color,
                 backgroundColor: styles.backgroundColor,
