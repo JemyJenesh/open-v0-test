@@ -95,7 +95,10 @@ const DemoApp = () => {
         const element = document.querySelector(`[data-element-id="${event.data.elementId}"]`) as HTMLElement;
         if (element && event.data.properties) {
           const props = event.data.properties;
-          if (props.textContent) element.textContent = props.textContent;
+          // Only update text content if it's not a placeholder for children
+          if (props.textContent && !props.textContent.startsWith('[')) {
+            element.textContent = props.textContent;
+          }
           if (props.color) element.style.color = props.color;
           if (props.backgroundColor) element.style.backgroundColor = props.backgroundColor;
           if (props.fontSize) element.style.fontSize = props.fontSize;
