@@ -41,8 +41,14 @@ const DemoContact = () => {
       const target = e.target as HTMLElement;
       
       if (mode === "edit" && window.parent !== window) {
-        e.preventDefault();
-        e.stopPropagation();
+        // Don't prevent default for links to allow navigation
+        const isLink = target.tagName === 'A' || target.closest('a');
+        if (!isLink) {
+          e.preventDefault();
+          e.stopPropagation();
+        } else {
+          return; // Let links work normally
+        }
         
         // Generate unique ID for element only if it doesn't have one
         let elementId = target.getAttribute('data-element-id');
