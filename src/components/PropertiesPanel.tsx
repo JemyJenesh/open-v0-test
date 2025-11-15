@@ -5,16 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Save } from "lucide-react";
+import { Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PropertiesPanelProps {
   element: any;
   onPropertiesUpdate: (properties: any) => void;
   onPropertiesSave: (properties: any) => void;
+  onClose: () => void;
 }
 
-const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave }: PropertiesPanelProps) => {
+const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClose }: PropertiesPanelProps) => {
   const [text, setText] = useState("");
   const [color, setColor] = useState("");
   const [backgroundColor, setBackgroundColor] = useState("");
@@ -80,11 +81,21 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave }: Prop
   return (
     <div className="flex flex-col h-full bg-panel">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border">
-        <h2 className="text-lg font-semibold text-foreground">Properties</h2>
-        <p className="text-xs text-muted-foreground mt-1">
-          Element: {element?.tagName || "Unknown"}
-        </p>
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Properties</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Element: {element?.tagName || "Unknown"}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-8 w-8"
+        >
+          <X className="w-4 h-4" />
+        </Button>
       </div>
 
       {/* Properties Form */}

@@ -28,6 +28,13 @@ const Index = () => {
     }
   };
 
+  const handleElementSelect = (element: any) => {
+    // Only set selected element in edit mode
+    if (mode === "edit") {
+      setSelectedElement(element);
+    }
+  };
+
   return (
     <div className="flex h-screen w-full bg-editor overflow-hidden">
       {/* Chat Panel - Left */}
@@ -43,7 +50,7 @@ const Index = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <PreviewPanel 
           ref={previewPanelRef}
-          onElementSelect={setSelectedElement}
+          onElementSelect={handleElementSelect}
           selectedElement={selectedElement}
           onContextChange={setDemoContext}
           mode={mode}
@@ -58,6 +65,7 @@ const Index = () => {
             element={selectedElement}
             onPropertiesUpdate={handlePropertiesUpdate}
             onPropertiesSave={handlePropertiesSave}
+            onClose={() => setSelectedElement(null)}
           />
         </div>
       )}
