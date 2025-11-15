@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, RefreshCw, Folder } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +9,7 @@ interface PreviewPanelProps {
   onContextChange: (context: any) => void;
 }
 
-const PreviewPanel = ({ onElementSelect, selectedElement, onContextChange }: PreviewPanelProps) => {
+const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextChange }: PreviewPanelProps, ref) => {
   const [iframeUrl, setIframeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -18,6 +18,20 @@ const PreviewPanel = ({ onElementSelect, selectedElement, onContextChange }: Pre
   useEffect(() => {
     setIframeUrl("/demo-app");
   }, []);
+
+  // Expose methods to parent
+  useImperativeHandle(ref, () => ({
+    updateElementProperties: (element: any, properties: any) => {
+      const iframe = document.getElementById("preview-iframe") as HTMLIFrameElement;
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: "update-properties",
+          elementId: element.elementId,
+          properties
+        }, "*");
+      }
+    }
+  }));
 
   // Listen for messages from the iframe
   useEffect(() => {
@@ -100,6 +114,8 @@ const PreviewPanel = ({ onElementSelect, selectedElement, onContextChange }: Pre
       </div>
     </div>
   );
-};
+});
+
+PreviewPanel.displayName = "PreviewPanel";
 
 export default PreviewPanel;

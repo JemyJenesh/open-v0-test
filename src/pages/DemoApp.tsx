@@ -33,22 +33,64 @@ const DemoApp = () => {
   // Handle element clicks
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
+      e.preventDefault();
       const target = e.target as HTMLElement;
+      
+      // Generate unique ID for element
+      const elementId = `${target.tagName.toLowerCase()}_${Date.now()}`;
+      target.setAttribute('data-element-id', elementId);
+      
+      // Get computed styles
+      const styles = window.getComputedStyle(target);
+      
       if (window.parent !== window) {
         window.parent.postMessage({
           type: "element-click",
           element: {
+            elementId,
             tagName: target.tagName,
             id: target.id,
             className: target.className,
             textContent: target.textContent?.substring(0, 100),
+            styles: {
+              color: styles.color,
+              backgroundColor: styles.backgroundColor,
+              fontSize: styles.fontSize,
+              width: styles.width,
+              height: styles.height,
+              padding: styles.padding,
+              margin: styles.margin,
+            }
           }
         }, "*");
       }
     };
 
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
+    document.addEventListener("click", handleClick, true);
+    return () => document.removeEventListener("click", handleClick, true);
+  }, []);
+
+  // Listen for property updates from parent
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === "update-properties") {
+        const element = document.querySelector(`[data-element-id="${event.data.elementId}"]`) as HTMLElement;
+        if (element && event.data.properties) {
+          const props = event.data.properties;
+          if (props.textContent) element.textContent = props.textContent;
+          if (props.color) element.style.color = props.color;
+          if (props.backgroundColor) element.style.backgroundColor = props.backgroundColor;
+          if (props.fontSize) element.style.fontSize = props.fontSize;
+          if (props.width) element.style.width = props.width;
+          if (props.height) element.style.height = props.height;
+          if (props.padding) element.style.padding = props.padding;
+          if (props.margin) element.style.margin = props.margin;
+        }
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   return (

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,7 +16,7 @@ interface ChatPanelProps {
   selectedElement: any;
 }
 
-const ChatPanel = ({ demoContext, selectedElement }: ChatPanelProps) => {
+const ChatPanel = forwardRef(({ demoContext, selectedElement }: ChatPanelProps, ref) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +28,20 @@ const ChatPanel = ({ demoContext, selectedElement }: ChatPanelProps) => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Expose method to send property updates
+  useImperativeHandle(ref, () => ({
+    sendPropertyUpdate: (element: any, properties: any) => {
+      const message = `Update element properties:
+Element: ${element.tagName} ${element.id ? `#${element.id}` : ''}${element.className ? `.${element.className.split(' ')[0]}` : ''}
+Current text: "${element.textContent?.substring(0, 50)}"
+
+New properties:
+${properties.textContent !== element.textContent ? `- Text: "${properties.textContent}"\n` : ''}${properties.color ? `- Color: ${properties.color}\n` : ''}${properties.backgroundColor ? `- Background: ${properties.backgroundColor}\n` : ''}${properties.fontSize ? `- Font size: ${properties.fontSize}\n` : ''}${properties.width ? `- Width: ${properties.width}\n` : ''}${properties.height ? `- Height: ${properties.height}\n` : ''}${properties.padding ? `- Padding: ${properties.padding}\n` : ''}${properties.margin ? `- Margin: ${properties.margin}\n` : ''}${properties.comment ? `\nAdditional instructions: ${properties.comment}` : ''}`;
+      
+      setInput(message);
+    }
+  }));
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -158,6 +172,8 @@ const ChatPanel = ({ demoContext, selectedElement }: ChatPanelProps) => {
       </div>
     </div>
   );
-};
+});
+
+ChatPanel.displayName = "ChatPanel";
 
 export default ChatPanel;
