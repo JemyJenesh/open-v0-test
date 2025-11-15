@@ -102,8 +102,8 @@ const DemoContact = () => {
         const element = document.querySelector(`[data-element-id="${event.data.elementId}"]`) as HTMLElement;
         if (element && event.data.properties) {
           const props = event.data.properties;
-          // Only update text content if it's not a placeholder for children
-          if (props.textContent && !props.textContent.startsWith('[')) {
+          // Only update text content if element has no children and it's not a placeholder
+          if (props.textContent && !props.textContent.startsWith('[') && element.children.length === 0) {
             element.textContent = props.textContent;
           }
           if (props.color) element.style.color = props.color;
