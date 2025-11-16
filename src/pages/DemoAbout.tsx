@@ -57,31 +57,44 @@ const DemoAbout = () => {
         
         // Analyze all elements of the same type on the page
         const sameTypeElements = document.querySelectorAll(target.tagName.toLowerCase());
-        const commonValues: Record<string, Set<string>> = {
-          fontSize: new Set(),
-          color: new Set(),
-          backgroundColor: new Set(),
-          padding: new Set(),
-          margin: new Set(),
-          width: new Set(),
-          height: new Set(),
+        const valueCounts: Record<string, Map<string, number>> = {
+          fontSize: new Map(),
+          color: new Map(),
+          backgroundColor: new Map(),
+          padding: new Map(),
+          margin: new Map(),
+          width: new Map(),
+          height: new Map(),
         };
         
         sameTypeElements.forEach((el) => {
           const elStyles = window.getComputedStyle(el as HTMLElement);
-          commonValues.fontSize.add(elStyles.fontSize);
-          commonValues.color.add(elStyles.color);
-          commonValues.backgroundColor.add(elStyles.backgroundColor);
-          commonValues.padding.add(elStyles.padding);
-          commonValues.margin.add(elStyles.margin);
-          commonValues.width.add(elStyles.width);
-          commonValues.height.add(elStyles.height);
+          ['fontSize', 'color', 'backgroundColor', 'padding', 'margin', 'width', 'height'].forEach(prop => {
+            const value = elStyles[prop as any];
+            const count = valueCounts[prop].get(value) || 0;
+            valueCounts[prop].set(value, count + 1);
+          });
         });
         
-        // Convert sets to arrays and limit to top 5 values
-        const commonValuesObj: Record<string, string[]> = {};
-        Object.keys(commonValues).forEach(key => {
-          commonValuesObj[key] = Array.from(commonValues[key]).slice(0, 5);
+        // Sort and format values with frequency labels
+        const commonValuesObj: Record<string, Array<{value: string, label: string}>> = {};
+        Object.keys(valueCounts).forEach(key => {
+          const sortedEntries = Array.from(valueCounts[key].entries())
+            .sort((a, b) => {
+              // Try to parse as numbers for numeric sorting
+              const aNum = parseFloat(a[0]);
+              const bNum = parseFloat(b[0]);
+              if (!isNaN(aNum) && !isNaN(bNum)) {
+                return aNum - bNum;
+              }
+              // Otherwise sort alphabetically
+              return a[0].localeCompare(b[0]);
+            });
+          
+          commonValuesObj[key] = sortedEntries.slice(0, 10).map(([value, count]) => ({
+            value,
+            label: count > 2 ? `${value} (${count}×)` : value
+          }));
         });
         
         // Get direct text content only (not including children)
