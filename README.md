@@ -18,7 +18,9 @@ Changes made via Lovable will be committed automatically to this repo.
 
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Requirements:
+- Node.js & npm - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Python 3.8+ (for the FastAPI backend)
 
 Follow these steps:
 
@@ -29,10 +31,26 @@ git clone <YOUR_GIT_URL>
 # Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
+# Step 3: Quick start - run both frontend and backend
+# On macOS/Linux:
+./start-dev.sh
+
+# On Windows:
+start-dev.bat
+
+# Or manually:
+# Install frontend dependencies
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Setup backend
+cd backend
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
+# Create backend/.env and add OPENAI_API_KEY=your_key_here
+python main.py  # In one terminal
+
+# In another terminal, start frontend
 npm run dev
 ```
 
@@ -54,11 +72,17 @@ npm run dev
 
 This project is built with:
 
+**Frontend:**
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+
+**Backend:**
+- Python FastAPI
+- Uvicorn
+- httpx
 
 ## How can I deploy this project?
 
