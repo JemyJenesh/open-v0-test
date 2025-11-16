@@ -108,7 +108,6 @@ const DemoApp = () => {
         directText = directText.trim();
         
         if (window.parent !== window) {
-          console.log("🔍 Element clicked:", target.tagName, "commonValues:", commonValuesObj);
           window.parent.postMessage({
             type: "element-click",
             element: {

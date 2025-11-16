@@ -32,7 +32,6 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
   // Update form when element changes
   useEffect(() => {
     if (element) {
-      console.log("📋 PropertiesPanel received element:", element.tagName, "commonValues:", element.commonValues);
       setText(element.textContent || "");
       setColor(element.styles?.color || "");
       setBackgroundColor(element.styles?.backgroundColor || "");
@@ -124,7 +123,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Color */}
           <div className="space-y-2">
             <Label htmlFor="color">Color</Label>
-            {element?.commonValues?.color && element.commonValues.color.length > 1 ? (
+            {element?.commonValues?.color && element.commonValues.color.length > 0 ? (
               <Select value={color} onValueChange={setColor}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select color" />
@@ -154,7 +153,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Background Color */}
           <div className="space-y-2">
             <Label htmlFor="backgroundColor">Background Color</Label>
-            {element?.commonValues?.backgroundColor && element.commonValues.backgroundColor.length > 1 ? (
+            {element?.commonValues?.backgroundColor && element.commonValues.backgroundColor.length > 0 ? (
               <Select value={backgroundColor} onValueChange={setBackgroundColor}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select background color" />
@@ -184,7 +183,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Font Size */}
           <div className="space-y-2">
             <Label htmlFor="fontSize">Font Size</Label>
-            {element?.commonValues?.fontSize && element.commonValues.fontSize.length > 1 ? (
+            {element?.commonValues?.fontSize && element.commonValues.fontSize.length > 0 ? (
               <div className="space-y-2">
                 <Select value={fontSize} onValueChange={setFontSize}>
                   <SelectTrigger className="bg-secondary border-border">
@@ -228,7 +227,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Width */}
           <div className="space-y-2">
             <Label htmlFor="width">Width</Label>
-            {element?.commonValues?.width && element.commonValues.width.length > 1 ? (
+            {element?.commonValues?.width && element.commonValues.width.length > 0 ? (
               <Select value={width} onValueChange={setWidth}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select width" />
@@ -255,7 +254,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Height */}
           <div className="space-y-2">
             <Label htmlFor="height">Height</Label>
-            {element?.commonValues?.height && element.commonValues.height.length > 1 ? (
+            {element?.commonValues?.height && element.commonValues.height.length > 0 ? (
               <Select value={height} onValueChange={setHeight}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select height" />
@@ -282,7 +281,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Padding */}
           <div className="space-y-2">
             <Label htmlFor="padding">Padding</Label>
-            {element?.commonValues?.padding && element.commonValues.padding.length > 1 ? (
+            {element?.commonValues?.padding && element.commonValues.padding.length > 0 ? (
               <Select value={padding} onValueChange={setPadding}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select padding" />
@@ -309,7 +308,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Margin */}
           <div className="space-y-2">
             <Label htmlFor="margin">Margin</Label>
-            {element?.commonValues?.margin && element.commonValues.margin.length > 1 ? (
+            {element?.commonValues?.margin && element.commonValues.margin.length > 0 ? (
               <Select value={margin} onValueChange={setMargin}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select margin" />
