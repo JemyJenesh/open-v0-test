@@ -41,21 +41,17 @@ const DemoContact = () => {
       const target = e.target as HTMLElement;
       
       if (mode === "edit" && window.parent !== window) {
-        // Don't prevent default for links to allow navigation
+        // Always prevent default and stop propagation in edit mode for non-links
         const isLink = target.tagName === 'A' || target.closest('a');
-        if (!isLink) {
-          e.preventDefault();
-          e.stopPropagation();
-        } else {
+        
+        if (isLink) {
           return; // Let links work normally
         }
         
-        // Check if we clicked on a button or inside a button
-        const button = target.tagName === 'BUTTON' ? target : target.closest('button');
-        if (button) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-        }
+        // Prevent all default behavior and propagation in edit mode
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         
         // Generate unique ID for element only if it doesn't have one
         let elementId = target.getAttribute('data-element-id');
