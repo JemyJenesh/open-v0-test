@@ -32,6 +32,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
   // Update form when element changes
   useEffect(() => {
     if (element) {
+      console.log("📋 PropertiesPanel received element:", element.tagName, "commonValues:", element.commonValues);
       setText(element.textContent || "");
       setColor(element.styles?.color || "");
       setBackgroundColor(element.styles?.backgroundColor || "");
