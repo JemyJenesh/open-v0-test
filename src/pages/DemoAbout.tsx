@@ -45,6 +45,13 @@ const DemoAbout = () => {
           return; // Let links work normally
         }
         
+        // Check if we clicked on a button or inside a button
+        const button = target.tagName === 'BUTTON' ? target : target.closest('button');
+        if (button) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+        
         // Generate unique ID for element only if it doesn't have one
         let elementId = target.getAttribute('data-element-id');
         if (!elementId) {
