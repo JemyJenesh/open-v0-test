@@ -132,8 +132,8 @@ const DemoAbout = () => {
       }
     };
 
-    document.addEventListener("click", handleClick, true);
-    return () => document.removeEventListener("click", handleClick, true);
+    window.addEventListener("click", handleClick, true);
+    return () => window.removeEventListener("click", handleClick, true);
   }, [mode]);
 
   // Listen for property updates and mode changes from parent
