@@ -123,25 +123,61 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Color */}
           <div className="space-y-2">
             <Label htmlFor="color">Color</Label>
-            <Input
-              id="color"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              placeholder="e.g., #000000, rgb(0,0,0)"
-              className="bg-secondary border-border"
-            />
+            {element?.commonValues?.color && element.commonValues.color.length > 1 ? (
+              <Select value={color} onValueChange={setColor}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Select color" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {element.commonValues.color.map((value: string) => (
+                    <SelectItem key={value} value={value}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded border" style={{ backgroundColor: value }} />
+                        {value}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="e.g., #000000, rgb(0,0,0)"
+                className="bg-secondary border-border"
+              />
+            )}
           </div>
 
           {/* Background Color */}
           <div className="space-y-2">
             <Label htmlFor="backgroundColor">Background Color</Label>
-            <Input
-              id="backgroundColor"
-              value={backgroundColor}
-              onChange={(e) => setBackgroundColor(e.target.value)}
-              placeholder="e.g., #ffffff, transparent"
-              className="bg-secondary border-border"
-            />
+            {element?.commonValues?.backgroundColor && element.commonValues.backgroundColor.length > 1 ? (
+              <Select value={backgroundColor} onValueChange={setBackgroundColor}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Select background color" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {element.commonValues.backgroundColor.map((value: string) => (
+                    <SelectItem key={value} value={value}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded border" style={{ backgroundColor: value }} />
+                        {value}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="backgroundColor"
+                value={backgroundColor}
+                onChange={(e) => setBackgroundColor(e.target.value)}
+                placeholder="e.g., #ffffff, transparent"
+                className="bg-secondary border-border"
+              />
+            )}
           </div>
 
           {/* Font Size */}
@@ -191,49 +227,109 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           {/* Width */}
           <div className="space-y-2">
             <Label htmlFor="width">Width</Label>
-            <Input
-              id="width"
-              value={width}
-              onChange={(e) => setWidth(e.target.value)}
-              placeholder="e.g., 100%, 300px"
-              className="bg-secondary border-border"
-            />
+            {element?.commonValues?.width && element.commonValues.width.length > 1 ? (
+              <Select value={width} onValueChange={setWidth}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Select width" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {element.commonValues.width.map((value: string) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="width"
+                value={width}
+                onChange={(e) => setWidth(e.target.value)}
+                placeholder="e.g., 100%, 300px"
+                className="bg-secondary border-border"
+              />
+            )}
           </div>
 
           {/* Height */}
           <div className="space-y-2">
             <Label htmlFor="height">Height</Label>
-            <Input
-              id="height"
-              value={height}
-              onChange={(e) => setHeight(e.target.value)}
-              placeholder="e.g., auto, 200px"
-              className="bg-secondary border-border"
-            />
+            {element?.commonValues?.height && element.commonValues.height.length > 1 ? (
+              <Select value={height} onValueChange={setHeight}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Select height" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {element.commonValues.height.map((value: string) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="height"
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                placeholder="e.g., auto, 200px"
+                className="bg-secondary border-border"
+              />
+            )}
           </div>
 
           {/* Padding */}
           <div className="space-y-2">
             <Label htmlFor="padding">Padding</Label>
-            <Input
-              id="padding"
-              value={padding}
-              onChange={(e) => setPadding(e.target.value)}
-              placeholder="e.g., 10px, 1rem 2rem"
-              className="bg-secondary border-border"
-            />
+            {element?.commonValues?.padding && element.commonValues.padding.length > 1 ? (
+              <Select value={padding} onValueChange={setPadding}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Select padding" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {element.commonValues.padding.map((value: string) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="padding"
+                value={padding}
+                onChange={(e) => setPadding(e.target.value)}
+                placeholder="e.g., 10px, 1rem 2rem"
+                className="bg-secondary border-border"
+              />
+            )}
           </div>
 
           {/* Margin */}
           <div className="space-y-2">
             <Label htmlFor="margin">Margin</Label>
-            <Input
-              id="margin"
-              value={margin}
-              onChange={(e) => setMargin(e.target.value)}
-              placeholder="e.g., 10px, 1rem auto"
-              className="bg-secondary border-border"
-            />
+            {element?.commonValues?.margin && element.commonValues.margin.length > 1 ? (
+              <Select value={margin} onValueChange={setMargin}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Select margin" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {element.commonValues.margin.map((value: string) => (
+                    <SelectItem key={value} value={value}>
+                      {value}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="margin"
+                value={margin}
+                onChange={(e) => setMargin(e.target.value)}
+                placeholder="e.g., 10px, 1rem auto"
+                className="bg-secondary border-border"
+              />
+            )}
           </div>
 
           <Separator />
