@@ -63,6 +63,8 @@ const DemoAbout = () => {
           backgroundColor: new Set(),
           padding: new Set(),
           margin: new Set(),
+          width: new Set(),
+          height: new Set(),
         };
         
         sameTypeElements.forEach((el) => {
@@ -72,6 +74,8 @@ const DemoAbout = () => {
           commonValues.backgroundColor.add(elStyles.backgroundColor);
           commonValues.padding.add(elStyles.padding);
           commonValues.margin.add(elStyles.margin);
+          commonValues.width.add(elStyles.width);
+          commonValues.height.add(elStyles.height);
         });
         
         // Convert sets to arrays and limit to top 5 values
