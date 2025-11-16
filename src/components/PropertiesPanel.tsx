@@ -129,11 +129,11 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
                   <SelectValue placeholder="Select color" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border z-50">
-                  {element.commonValues.color.map((value: string) => (
-                    <SelectItem key={value} value={value}>
+                  {element.commonValues.color.map((item: any) => (
+                    <SelectItem key={item.value} value={item.value}>
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded border" style={{ backgroundColor: value }} />
-                        {value}
+                        <div className="w-4 h-4 rounded border" style={{ backgroundColor: item.value }} />
+                        {item.label}
                       </div>
                     </SelectItem>
                   ))}
@@ -159,11 +159,11 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
                   <SelectValue placeholder="Select background color" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border z-50">
-                  {element.commonValues.backgroundColor.map((value: string) => (
-                    <SelectItem key={value} value={value}>
+                  {element.commonValues.backgroundColor.map((item: any) => (
+                    <SelectItem key={item.value} value={item.value}>
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded border" style={{ backgroundColor: value }} />
-                        {value}
+                        <div className="w-4 h-4 rounded border" style={{ backgroundColor: item.value }} />
+                        {item.label}
                       </div>
                     </SelectItem>
                   ))}
@@ -190,9 +190,9 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
                     <SelectValue placeholder="Select font size" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover border-border z-50">
-                    {element.commonValues.fontSize.map((value: string) => (
-                      <SelectItem key={value} value={value}>
-                        {value}
+                    {element.commonValues.fontSize.map((item: any) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -233,9 +233,9 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
                   <SelectValue placeholder="Select width" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border z-50">
-                  {element.commonValues.width.map((value: string) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
+                  {element.commonValues.width.map((item: any) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -260,9 +260,9 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
                   <SelectValue placeholder="Select height" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border z-50">
-                  {element.commonValues.height.map((value: string) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
+                  {element.commonValues.height.map((item: any) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -287,9 +287,9 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
                   <SelectValue placeholder="Select padding" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border z-50">
-                  {element.commonValues.padding.map((value: string) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
+                  {element.commonValues.padding.map((item: any) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -314,9 +314,9 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
                   <SelectValue placeholder="Select margin" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border z-50">
-                  {element.commonValues.margin.map((value: string) => (
-                    <SelectItem key={value} value={value}>
-                      {value}
+                  {element.commonValues.margin.map((item: any) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
