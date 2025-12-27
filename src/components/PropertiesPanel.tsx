@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,41 +27,66 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
   const [padding, setPadding] = useState("");
   const [margin, setMargin] = useState("");
   const [comment, setComment] = useState("");
+  const [userHasEdited, setUserHasEdited] = useState(false);
   const { toast } = useToast();
 
-  // Update form when element changes
+  // Track which element we're currently editing to prevent cross-element updates
+  const editingElementIdRef = useRef<string | null>(null);
+
+  // Update form when element changes - use elementId for reliable detection
   useEffect(() => {
     if (element) {
+      // Clear the editing ref first to prevent any pending updates
+      editingElementIdRef.current = null;
+      setUserHasEdited(false); // Reset when new element selected
       setText(element.textContent || "");
-      setColor(element.styles?.color || "");
-      setBackgroundColor(element.styles?.backgroundColor || "");
-      setFontSize(element.styles?.fontSize || "");
-      setWidth(element.styles?.width || "");
-      setHeight(element.styles?.height || "");
-      setPadding(element.styles?.padding || "");
-      setMargin(element.styles?.margin || "");
+      setColor(element.computedStyle?.color || "");
+      setBackgroundColor(element.computedStyle?.backgroundColor || "");
+      setFontSize(element.computedStyle?.fontSize || "");
+      setWidth(element.computedStyle?.width || "");
+      setHeight(element.computedStyle?.height || "");
+      setPadding(element.computedStyle?.padding || "");
+      setMargin(element.computedStyle?.margin || "");
       setComment("");
     }
-  }, [element]);
+  }, [element?.elementId]);
 
-  // Send real-time updates
+  // Send real-time updates only after user has edited something
   useEffect(() => {
-    const properties = {
-      textContent: text,
-      color,
-      backgroundColor,
-      fontSize,
-      width,
-      height,
-      padding,
-      margin,
-    };
+    if (!userHasEdited) return;
+    // Only send updates if we're still editing the same element
+    if (!editingElementIdRef.current || editingElementIdRef.current !== element?.elementId) return;
+
+    const properties: any = {};
+    // Only include textContent if it's real text (not a placeholder like "[2 children]")
+    if (text && !text.startsWith('[')) properties.textContent = text;
+    if (color) properties.color = color;
+    if (backgroundColor) properties.backgroundColor = backgroundColor;
+    if (fontSize) properties.fontSize = fontSize;
+    if (width) properties.width = width;
+    if (height) properties.height = height;
+    if (padding) properties.padding = padding;
+    if (margin) properties.margin = margin;
+
     onPropertiesUpdate(properties);
-  }, [text, color, backgroundColor, fontSize, width, height, padding, margin, onPropertiesUpdate]);
+  }, [text, color, backgroundColor, fontSize, width, height, padding, margin, userHasEdited, element?.elementId, onPropertiesUpdate]);
+
+  // Wrapper to mark user has edited and lock to current element
+  const markEditing = () => {
+    editingElementIdRef.current = element?.elementId || null;
+    setUserHasEdited(true);
+  };
+  const handleTextChange = (value: string) => { markEditing(); setText(value); };
+  const handleColorChange = (value: string) => { markEditing(); setColor(value); };
+  const handleBgColorChange = (value: string) => { markEditing(); setBackgroundColor(value); };
+  const handleFontSizeChange = (value: string) => { markEditing(); setFontSize(value); };
+  const handleWidthChange = (value: string) => { markEditing(); setWidth(value); };
+  const handleHeightChange = (value: string) => { markEditing(); setHeight(value); };
+  const handlePaddingChange = (value: string) => { markEditing(); setPadding(value); };
+  const handleMarginChange = (value: string) => { markEditing(); setMargin(value); };
 
   const handleSave = () => {
-    const properties = {
-      textContent: text,
+    const properties: any = {
       color,
       backgroundColor,
       fontSize,
@@ -71,6 +96,11 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
       margin,
       comment,
     };
+
+    // Only include textContent if it's real text (not a placeholder)
+    if (text && !text.startsWith('[')) {
+      properties.textContent = text;
+    }
 
     onPropertiesSave(properties);
     
@@ -111,7 +141,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
                 <Textarea
                   id="text"
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={(e) => handleTextChange(e.target.value)}
                   placeholder="Enter text..."
                   className="bg-secondary border-border min-h-[100px] resize-y"
                 />
@@ -124,7 +154,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           <div className="space-y-2">
             <Label htmlFor="color">Color</Label>
             {element?.commonValues?.color && element.commonValues.color.length > 0 ? (
-              <Select value={color} onValueChange={setColor}>
+              <Select value={color} onValueChange={handleColorChange}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select color" />
                 </SelectTrigger>
@@ -143,7 +173,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
               <Input
                 id="color"
                 value={color}
-                onChange={(e) => setColor(e.target.value)}
+                onChange={(e) => handleColorChange(e.target.value)}
                 placeholder="e.g., #000000, rgb(0,0,0)"
                 className="bg-secondary border-border"
               />
@@ -154,7 +184,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           <div className="space-y-2">
             <Label htmlFor="backgroundColor">Background Color</Label>
             {element?.commonValues?.backgroundColor && element.commonValues.backgroundColor.length > 0 ? (
-              <Select value={backgroundColor} onValueChange={setBackgroundColor}>
+              <Select value={backgroundColor} onValueChange={handleBgColorChange}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select background color" />
                 </SelectTrigger>
@@ -173,7 +203,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
               <Input
                 id="backgroundColor"
                 value={backgroundColor}
-                onChange={(e) => setBackgroundColor(e.target.value)}
+                onChange={(e) => handleBgColorChange(e.target.value)}
                 placeholder="e.g., #ffffff, transparent"
                 className="bg-secondary border-border"
               />
@@ -185,7 +215,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
             <Label htmlFor="fontSize">Font Size</Label>
             {element?.commonValues?.fontSize && element.commonValues.fontSize.length > 0 ? (
               <div className="space-y-2">
-                <Select value={fontSize} onValueChange={setFontSize}>
+                <Select value={fontSize} onValueChange={handleFontSizeChange}>
                   <SelectTrigger className="bg-secondary border-border">
                     <SelectValue placeholder="Select font size" />
                   </SelectTrigger>
@@ -202,7 +232,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
                     <Label className="text-xs text-muted-foreground">Fine-tune ({fontSize})</Label>
                     <Slider
                       value={[parseFloat(fontSize) || 16]}
-                      onValueChange={(value) => setFontSize(`${value[0]}px`)}
+                      onValueChange={(value) => handleFontSizeChange(`${value[0]}px`)}
                       min={8}
                       max={72}
                       step={1}
@@ -215,7 +245,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
               <Input
                 id="fontSize"
                 value={fontSize}
-                onChange={(e) => setFontSize(e.target.value)}
+                onChange={(e) => handleFontSizeChange(e.target.value)}
                 placeholder="e.g., 16px, 1rem"
                 className="bg-secondary border-border"
               />
@@ -228,7 +258,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           <div className="space-y-2">
             <Label htmlFor="width">Width</Label>
             {element?.commonValues?.width && element.commonValues.width.length > 0 ? (
-              <Select value={width} onValueChange={setWidth}>
+              <Select value={width} onValueChange={handleWidthChange}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select width" />
                 </SelectTrigger>
@@ -244,7 +274,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
               <Input
                 id="width"
                 value={width}
-                onChange={(e) => setWidth(e.target.value)}
+                onChange={(e) => handleWidthChange(e.target.value)}
                 placeholder="e.g., 100%, 300px"
                 className="bg-secondary border-border"
               />
@@ -255,7 +285,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           <div className="space-y-2">
             <Label htmlFor="height">Height</Label>
             {element?.commonValues?.height && element.commonValues.height.length > 0 ? (
-              <Select value={height} onValueChange={setHeight}>
+              <Select value={height} onValueChange={handleHeightChange}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select height" />
                 </SelectTrigger>
@@ -271,7 +301,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
               <Input
                 id="height"
                 value={height}
-                onChange={(e) => setHeight(e.target.value)}
+                onChange={(e) => handleHeightChange(e.target.value)}
                 placeholder="e.g., auto, 200px"
                 className="bg-secondary border-border"
               />
@@ -282,7 +312,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           <div className="space-y-2">
             <Label htmlFor="padding">Padding</Label>
             {element?.commonValues?.padding && element.commonValues.padding.length > 0 ? (
-              <Select value={padding} onValueChange={setPadding}>
+              <Select value={padding} onValueChange={handlePaddingChange}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select padding" />
                 </SelectTrigger>
@@ -298,7 +328,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
               <Input
                 id="padding"
                 value={padding}
-                onChange={(e) => setPadding(e.target.value)}
+                onChange={(e) => handlePaddingChange(e.target.value)}
                 placeholder="e.g., 10px, 1rem 2rem"
                 className="bg-secondary border-border"
               />
@@ -309,7 +339,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
           <div className="space-y-2">
             <Label htmlFor="margin">Margin</Label>
             {element?.commonValues?.margin && element.commonValues.margin.length > 0 ? (
-              <Select value={margin} onValueChange={setMargin}>
+              <Select value={margin} onValueChange={handleMarginChange}>
                 <SelectTrigger className="bg-secondary border-border">
                   <SelectValue placeholder="Select margin" />
                 </SelectTrigger>
@@ -325,7 +355,7 @@ const PropertiesPanel = ({ element, onPropertiesUpdate, onPropertiesSave, onClos
               <Input
                 id="margin"
                 value={margin}
-                onChange={(e) => setMargin(e.target.value)}
+                onChange={(e) => handleMarginChange(e.target.value)}
                 placeholder="e.g., 10px, 1rem auto"
                 className="bg-secondary border-border"
               />

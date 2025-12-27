@@ -257,8 +257,9 @@ const DemoApp = () => {
             <button
               onClick={() => setCount(count + 1)}
               className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+              style={{ color: "rgb(255, 255, 255)", fontSize: "41px" }}
             >
-              Increase
+              Increase :)
             </button>
           </div>
         </div>

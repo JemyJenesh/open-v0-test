@@ -89,6 +89,9 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
         onContextChange(event.data.context);
       } else if (event.data.type === "element-click") {
         onElementSelect(event.data.element);
+      } else if (event.data.type === "route-changed") {
+        // Clear selected element when navigating to a new page
+        onElementSelect(null);
       }
     };
 

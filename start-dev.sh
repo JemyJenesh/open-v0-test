@@ -38,11 +38,58 @@ if [ ! -f "backend/.env" ]; then
     echo "   Creating from env.example..."
     if [ -f "backend/env.example" ]; then
         cp backend/env.example backend/.env
-        echo "   Please edit backend/.env and add your ANTHROPIC_API_KEY"
     else
-        echo "ANTHROPIC_API_KEY=your_key_here" > backend/.env
-        echo "   Please edit backend/.env and add your ANTHROPIC_API_KEY"
+        echo "ANTHROPIC_API_KEY=" > backend/.env
     fi
+fi
+
+# Load existing .env file
+if [ -f "backend/.env" ]; then
+    export $(grep -v '^#' backend/.env | xargs)
+fi
+
+# Check if ANTHROPIC_API_KEY is set and valid
+check_api_key() {
+    if [ -z "$ANTHROPIC_API_KEY" ] || [ "$ANTHROPIC_API_KEY" = "your_anthropic_api_key_here" ] || [ "$ANTHROPIC_API_KEY" = "your_key_here" ]; then
+        return 1
+    fi
+    return 0
+}
+
+if ! check_api_key; then
+    echo ""
+    echo "🔑 Anthropic API Key Required"
+    echo "   Open V0 uses Claude AI to help you build applications."
+    echo "   Get your API key from: https://console.anthropic.com/settings/keys"
+    echo ""
+    
+    while true; do
+        read -p "Enter your Anthropic API key (sk-ant-...): " api_key
+        
+        if [ -z "$api_key" ]; then
+            echo "❌ API key cannot be empty. Please try again."
+            continue
+        fi
+        
+        if [[ ! "$api_key" =~ ^sk-ant- ]]; then
+            echo "❌ Invalid API key format. Anthropic keys start with 'sk-ant-'"
+            continue
+        fi
+        
+        # Save to .env file
+        if grep -q "ANTHROPIC_API_KEY=" backend/.env; then
+            # Update existing key
+            sed -i.bak "s|ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=$api_key|" backend/.env
+            rm -f backend/.env.bak
+        else
+            # Add new key
+            echo "ANTHROPIC_API_KEY=$api_key" >> backend/.env
+        fi
+        
+        export ANTHROPIC_API_KEY="$api_key"
+        echo "✅ API key saved to backend/.env"
+        break
+    done
 fi
 
 # Check if editor node_modules exists

@@ -99,7 +99,7 @@ const ChatPanel = forwardRef(
                     "";
 
                   if (content) {
-                    assistantMessage += content;
+                    assistantMessage += content + "\n";
                     setMessages((prev) => {
                       const newMessages = [...prev];
                       newMessages[newMessages.length - 1] = {

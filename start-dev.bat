@@ -3,10 +3,9 @@ REM Start development script for Open V0 (Windows)
 REM This script starts both frontend and backend servers
 
 echo 🚀 Starting Open V0 Development Environment
-echo    This will start 3 servers:
-echo    - Demo Project (port 3000)
+echo    This will start 2 servers:
 echo    - Backend API (port 54321)
-echo    - Vision Studio Editor (port 8080)
+echo    - Editor (port 8080)
 echo.
 
 REM Check if Python is installed
@@ -40,12 +39,52 @@ if not exist "backend\.env" (
     echo    Creating from env.example...
     if exist "backend\env.example" (
         copy backend\env.example backend\.env
-        echo    Please edit backend\.env and add your OPENAI_API_KEY
     ) else (
-        echo OPENAI_API_KEY=your_key_here > backend\.env
-        echo    Please edit backend\.env and add your OPENAI_API_KEY
+        echo ANTHROPIC_API_KEY= > backend\.env
     )
 )
+
+REM Load and check API key
+setlocal enabledelayedexpansion
+set "API_KEY="
+for /f "tokens=1,* delims==" %%a in ('type backend\.env ^| findstr /r "^ANTHROPIC_API_KEY="') do (
+    set "API_KEY=%%b"
+)
+
+REM Check if API key needs to be set
+if "!API_KEY!"=="" goto :ask_key
+if "!API_KEY!"=="your_anthropic_api_key_here" goto :ask_key
+if "!API_KEY!"=="your_key_here" goto :ask_key
+goto :key_ok
+
+:ask_key
+echo.
+echo 🔑 Anthropic API Key Required
+echo    Open V0 uses Claude AI to help you build applications.
+echo    Get your API key from: https://console.anthropic.com/settings/keys
+echo.
+
+:ask_key_loop
+set /p "api_key=Enter your Anthropic API key (sk-ant-...): "
+
+if "!api_key!"=="" (
+    echo ❌ API key cannot be empty. Please try again.
+    goto :ask_key_loop
+)
+
+echo !api_key! | findstr /r "^sk-ant-" >nul
+if errorlevel 1 (
+    echo ❌ Invalid API key format. Anthropic keys start with 'sk-ant-'
+    goto :ask_key_loop
+)
+
+REM Save to .env file
+echo ANTHROPIC_API_KEY=!api_key! > backend\.env
+set "ANTHROPIC_API_KEY=!api_key!"
+echo ✅ API key saved to backend\.env
+
+:key_ok
+endlocal
 
 REM Check if editor node_modules exists
 if not exist "node_modules" (
@@ -53,22 +92,6 @@ if not exist "node_modules" (
     call npm install
     echo ✅ Editor dependencies installed
 )
-
-REM Check if demo project node_modules exists
-if not exist "demo-project\node_modules" (
-    echo 📦 Installing demo project dependencies...
-    cd demo-project
-    call npm install
-    cd ..
-    echo ✅ Demo project dependencies installed
-)
-
-REM Start demo project in new window
-echo 🎨 Starting Demo Project on port 3000...
-start "Demo Project" cmd /k "cd demo-project && npm run dev"
-
-REM Wait a bit
-timeout /t 1 /nobreak >nul
 
 REM Start backend in new window
 echo 🐍 Starting FastAPI backend on port 54321...
@@ -84,10 +107,9 @@ start "Vision Studio Editor" cmd /k "npm run dev"
 echo.
 echo ✅ All servers are starting in separate windows!
 echo.
-echo Demo Project: http://localhost:3000
-echo Vision Studio Editor: http://localhost:8080
+echo Editor: http://localhost:8080
 echo Backend API: http://localhost:54321
-echo Backend API Docs: http://localhost:54321/docs
 echo.
+echo Select a project directory in the Editor to get started.
 echo Close the terminal windows to stop the servers
 pause

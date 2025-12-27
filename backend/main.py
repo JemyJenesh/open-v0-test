@@ -11,9 +11,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+import httpx
 from agentlys import Agentlys
 from agentlys_tools.code_editor import CodeEditor
-import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -24,16 +24,16 @@ from pydantic import BaseModel
 class ApiKeyState:
     def __init__(self):
         self._api_key: Optional[str] = None
-    
+
     def get_api_key(self) -> Optional[str]:
         """Get API key from memory or environment"""
         return self._api_key or os.getenv("ANTHROPIC_API_KEY")
-    
+
     def set_api_key(self, key: str) -> None:
         """Set API key in memory and environment (for libraries that read env directly)"""
         self._api_key = key
         os.environ["ANTHROPIC_API_KEY"] = key
-    
+
     def is_configured(self) -> bool:
         """Check if API key is configured"""
         key = self.get_api_key()
@@ -109,7 +109,9 @@ class ProjectState:
             "directory": self.current_directory,
             "dev_server_running": self.dev_server_process is not None,
             "dev_server_port": self.dev_server_port,
-            "dev_server_url": "http://localhost:54321/" if self.dev_server_process else None,
+            "dev_server_url": "http://localhost:54321/"
+            if self.dev_server_process
+            else None,
         }
 
 
@@ -203,9 +205,31 @@ EDITOR_SCRIPT = """
     },"*");
   }
 
+  function getCommonValues(tagName){
+    const props=["fontSize","color","backgroundColor","padding","margin","width","height"];
+    const counts={};
+    props.forEach(p=>counts[p]=new Map());
+    document.querySelectorAll(tagName.toLowerCase()).forEach(el=>{
+      const s=window.getComputedStyle(el);
+      props.forEach(p=>{
+        const v=s[p];
+        counts[p].set(v,(counts[p].get(v)||0)+1);
+      });
+    });
+    const result={};
+    props.forEach(p=>{
+      const sorted=Array.from(counts[p].entries()).sort((a,b)=>{
+        const aNum=parseFloat(a[0]),bNum=parseFloat(b[0]);
+        if(!isNaN(aNum)&&!isNaN(bNum))return aNum-bNum;
+        return a[0].localeCompare(b[0]);
+      });
+      result[p]=sorted.slice(0,10).map(([v,c])=>({value:v,label:c>2?v+" ("+c+"×)":v}));
+    });
+    return result;
+  }
+
   document.addEventListener("click",function(e){
     if(!editMode)return;
-    if(e.target.tagName==="A")return;
     e.preventDefault();
     e.stopPropagation();
     const t=e.target;
@@ -214,6 +238,10 @@ EDITOR_SCRIPT = """
     const rect=t.getBoundingClientRect();
     let text="";
     for(const n of t.childNodes)if(n.nodeType===3)text+=n.textContent;
+    text=text.trim();
+    // For container elements with children but no direct text, show placeholder
+    const textContent=text||(t.children.length>0?"["+t.children.length+" children]":"");
+    const commonValues=getCommonValues(t.tagName);
     window.parent.postMessage({
       type:"element-click",
       element:{
@@ -221,13 +249,14 @@ EDITOR_SCRIPT = """
         tagName:t.tagName,
         id:t.id,
         className:t.className,
-        textContent:text.trim()||t.textContent?.substring(0,100),
+        textContent:textContent,
         rect:{top:rect.top,left:rect.left,width:rect.width,height:rect.height},
         computedStyle:{
           color:cs.color,backgroundColor:cs.backgroundColor,fontSize:cs.fontSize,
           fontWeight:cs.fontWeight,padding:cs.padding,margin:cs.margin,
           width:cs.width,height:cs.height,display:cs.display,position:cs.position
-        }
+        },
+        commonValues:commonValues
       }
     },"*");
   },true);
@@ -247,7 +276,7 @@ EDITOR_SCRIPT = """
         if(p.height)el.style.height=p.height;
         if(p.padding)el.style.padding=p.padding;
         if(p.margin)el.style.margin=p.margin;
-        if(p.textContent!==undefined)el.textContent=p.textContent;
+        if(p.textContent!==undefined&&!p.textContent.startsWith("["))el.textContent=p.textContent;
       }
     }
   });
@@ -260,6 +289,7 @@ EDITOR_SCRIPT = """
   setInterval(function(){
     if(window.location.pathname!==lastPath){
       lastPath=window.location.pathname;
+      window.parent.postMessage({type:"route-changed",route:lastPath},"*");
       sendContext();
     }
   },100);
@@ -272,12 +302,13 @@ EDITOR_SCRIPT = """
 # API ROUTES (must be defined BEFORE the catch-all proxy)
 # ============================================================================
 
+
 @app.get("/api-key/status", response_model=ApiKeyStatusResponse)
 async def get_api_key_status():
     """Check if API key is configured"""
     env_key = os.getenv("ANTHROPIC_API_KEY")
     session_key = api_key_state._api_key
-    
+
     if session_key:
         return ApiKeyStatusResponse(configured=True, source="session")
     elif env_key:
@@ -291,12 +322,15 @@ async def set_api_key(request: ApiKeyRequest):
     """Set the Anthropic API key for this session"""
     if not request.api_key or len(request.api_key.strip()) == 0:
         raise HTTPException(status_code=400, detail="API key cannot be empty")
-    
+
     # Basic validation - Anthropic keys start with "sk-ant-"
     key = request.api_key.strip()
     if not key.startswith("sk-ant-"):
-        raise HTTPException(status_code=400, detail="Invalid API key format. Anthropic keys start with 'sk-ant-'")
-    
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid API key format. Anthropic keys start with 'sk-ant-'",
+        )
+
     api_key_state.set_api_key(key)
     return {"success": True, "message": "API key configured successfully"}
 
@@ -346,7 +380,8 @@ async def chat(request: ChatRequest):
 
     if not ANTHROPIC_API_KEY:
         raise HTTPException(
-            status_code=401, detail="ANTHROPIC_API_KEY is not configured. Please set your API key."
+            status_code=401,
+            detail="ANTHROPIC_API_KEY is not configured. Please set your API key.",
         )
 
     # Build context information
@@ -367,7 +402,8 @@ async def chat(request: ChatRequest):
 You have access to a code editor tool that allows you to read, write, and modify files.
 When the user asks you to make changes to the code, use the code_editor tool to do so.
 Use relative paths from the project directory (e.g., "src/App.tsx", "src/components/Header.tsx").
-Be concise and helpful in your responses."""
+Be concise and helpful in your responses.
+IMPORTANT: Never output file contents in your response. When you read a file, just confirm you read it and summarize what you found. Do not repeat the file content back to the user."""
 
     # Build the conversation from message history
     conversation = ""
@@ -390,21 +426,33 @@ Be concise and helpful in your responses."""
             agent.add_tool(project_state.code_editor)
 
             async for msg in agent.run_conversation_async(conversation):
+                # Skip tool messages - only stream assistant responses
+                msg_role = getattr(msg, "role", None)
+                if msg_role and msg_role != "assistant":
+                    continue
+
                 content = (
                     msg.content.to_string()
                     if hasattr(msg.content, "to_string")
                     else str(msg.content)
                 )
 
-                response_data = {
-                    "choices": [
-                        {
-                            "delta": {"content": content},
-                            "index": 0,
-                        }
-                    ]
-                }
-                yield f"data: {json.dumps(response_data)}\n\n"
+                # Skip empty content
+                if not content or content.strip() == "" or content == "None":
+                    continue
+
+                # Stream line by line for better UX
+                for line in content.split("\n"):
+                    response_data = {
+                        "choices": [
+                            {
+                                "delta": {"content": line},
+                                "index": 0,
+                            }
+                        ]
+                    }
+                    yield f"data: {json.dumps(response_data)}\n\n"
+                    await asyncio.sleep(0.01)
 
             yield "data: [DONE]\n\n"
 
@@ -448,7 +496,10 @@ async def update_properties(request: PropertiesRequest):
 # CATCH-ALL PROXY (must be LAST - forwards everything else to target project)
 # ============================================================================
 
-@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
+
+@app.api_route(
+    "/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
+)
 async def proxy(request: Request, path: str = ""):
     """
     Transparent proxy - forwards all requests to target project.
@@ -469,7 +520,8 @@ async def proxy(request: Request, path: str = ""):
 
             # Forward headers (except host)
             headers = {
-                k: v for k, v in request.headers.items()
+                k: v
+                for k, v in request.headers.items()
                 if k.lower() not in ["host", "content-length"]
             }
 
