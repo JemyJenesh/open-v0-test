@@ -1,0 +1,31 @@
+.footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  padding: 20px 0;
+  margin-top: auto;
+  text-align: center;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.footer-content p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .footer {
+    background-color: #343a40;
+    border-top-color: #495057;
+  }
+  
+  .footer-content p {
+    color: #adb5bd;
+  }
+}

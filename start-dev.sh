@@ -1,13 +1,12 @@
 #!/bin/bash
 
-# Start development script for React Vision Studio
+# Start development script for Open V0
 # This script starts both frontend and backend servers
 
-echo "🚀 Starting React Vision Studio Development Environment"
-echo "   This will start 3 servers:"
-echo "   - Demo Project (port 3000)"
+echo "🚀 Starting Open V0 Development Environment"
+echo "   This will start 2 servers:"
 echo "   - Backend API (port 54321)"
-echo "   - Vision Studio Editor (port 8080)"
+echo "   - Editor (port 8080)"
 echo ""
 
 # Check if Python is installed
@@ -39,10 +38,10 @@ if [ ! -f "backend/.env" ]; then
     echo "   Creating from env.example..."
     if [ -f "backend/env.example" ]; then
         cp backend/env.example backend/.env
-        echo "   Please edit backend/.env and add your OPENAI_API_KEY"
+        echo "   Please edit backend/.env and add your ANTHROPIC_API_KEY"
     else
-        echo "OPENAI_API_KEY=your_key_here" > backend/.env
-        echo "   Please edit backend/.env and add your OPENAI_API_KEY"
+        echo "ANTHROPIC_API_KEY=your_key_here" > backend/.env
+        echo "   Please edit backend/.env and add your ANTHROPIC_API_KEY"
     fi
 fi
 
@@ -53,35 +52,27 @@ if [ ! -d "node_modules" ]; then
     echo "✅ Editor dependencies installed"
 fi
 
-# Check if demo project node_modules exists
-if [ ! -d "demo-project/node_modules" ]; then
-    echo "📦 Installing demo project dependencies..."
-    cd demo-project
-    npm install
-    cd ..
-    echo "✅ Demo project dependencies installed"
-fi
-
-# Start demo project
-echo "🎨 Starting Demo Project on port 3000..."
-cd demo-project
-npm run dev &
-DEMO_PID=$!
-cd ..
-
-# Wait a bit
-sleep 1
-
-# Start backend in background
+# Start backend and check if it starts successfully
 echo "🐍 Starting FastAPI backend on port 54321..."
 cd backend
 source .venv/bin/activate
+
+# Test that the backend can import successfully before running
+if ! python -c "import main" 2>/dev/null; then
+    echo "❌ Backend failed to start! Check the error above."
+    exit 1
+fi
+
 python main.py &
 BACKEND_PID=$!
 cd ..
 
-# Wait a bit for backend to start
+# Wait and verify backend is running
 sleep 2
+if ! kill -0 $BACKEND_PID 2>/dev/null; then
+    echo "❌ Backend crashed!"
+    exit 1
+fi
 
 # Start editor
 echo "⚛️  Starting Vision Studio Editor on port 8080..."
@@ -89,20 +80,18 @@ npm run dev &
 EDITOR_PID=$!
 
 echo ""
-echo "✅ All servers are starting!"
+echo "✅ All servers are running!"
 echo ""
-echo "Demo Project: http://localhost:3000"
-echo "Vision Studio Editor: http://localhost:8080"
+echo "Editor: http://localhost:8080"
 echo "Backend API: http://localhost:54321"
-echo "Backend API Docs: http://localhost:54321/docs"
 echo ""
+echo "Select a project directory in the Editor to get started."
 echo "Press Ctrl+C to stop all servers"
 
 # Function to cleanup on exit
 cleanup() {
     echo ""
     echo "🛑 Stopping all servers..."
-    kill $DEMO_PID 2>/dev/null
     kill $BACKEND_PID 2>/dev/null
     kill $EDITOR_PID 2>/dev/null
     exit 0

@@ -232,7 +232,7 @@ const DemoApp = () => {
         {/* Header */}
         <header className="mb-12">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            Demo React App
+            Demo Open V0
           </h1>
           <p className="text-xl text-gray-600">
             This is a sample app to test the visual editor
@@ -312,6 +312,11 @@ const DemoApp = () => {
           </p>
         </div>
       </div>
+      
+      {/* Footer */}
+      <footer className="mt-12 text-center py-8">
+        <p className="text-gray-500 text-sm">Made by Ben @ myriade.ai</p>
+      </footer>
     </div>
   );
 };

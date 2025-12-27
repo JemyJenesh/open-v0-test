@@ -1,36 +1,32 @@
-# FastAPI Backend
+# Backend API
 
-Python FastAPI backend for React Vision Studio.
+Python FastAPI backend for Open V0, providing AI chat functionality via Claude.
 
 ## Setup
 
 1. Create a virtual environment:
-
 ```bash
 python -m venv venv
 ```
 
 2. Activate the virtual environment:
-
 ```bash
-# On macOS/Linux
+# macOS/Linux
 source venv/bin/activate
 
-# On Windows
+# Windows
 venv\Scripts\activate
 ```
 
 3. Install dependencies:
-
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file with your environment variables:
-
+4. Create a `.env` file:
 ```bash
 cp env.example .env
-# Edit .env and add your OPENAI_API_KEY
+# Edit .env and add your ANTHROPIC_API_KEY
 ```
 
 ## Running the Server
@@ -39,22 +35,65 @@ cp env.example .env
 # From the backend directory
 python main.py
 
-# Or using uvicorn directly
+# Or with auto-reload
 uvicorn main:app --host 0.0.0.0 --port 54321 --reload
 ```
 
-The server will run on `http://localhost:54321`.
+The server runs on `http://localhost:54321`.
 
 ## API Endpoints
 
-- `GET /` - Health check
-- `POST /chat` - AI chat endpoint (streaming)
-- `POST /properties` - Update component properties
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Health check |
+| POST | `/api/chat` | AI chat with Claude (streaming) |
+| POST | `/api/properties` | Update component properties |
 
-## Development
+### Chat Endpoint
 
-The server runs with auto-reload enabled when using `uvicorn` with the `--reload` flag.
+```bash
+POST /api/chat
+Content-Type: application/json
+
+{
+  "messages": [{"role": "user", "content": "Add a button"}],
+  "context": {
+    "route": "/",
+    "viewport": {"width": 1920, "height": 1080}
+  }
+}
+```
+
+Returns a streaming response with AI-generated code modifications.
+
+### Properties Endpoint
+
+```bash
+POST /api/properties
+Content-Type: application/json
+
+{
+  "elementId": "element-123",
+  "properties": {"color": "blue", "fontSize": "16px"}
+}
+```
 
 ## Environment Variables
 
-- `OPENAI_API_KEY` - Required for AI chat functionality (get it from https://platform.openai.com/api-keys)
+| Variable | Description |
+|----------|-------------|
+| `ANTHROPIC_API_KEY` | Required. Get it from [Anthropic Console](https://console.anthropic.com/) |
+
+## Tech Stack
+
+- **Framework**: FastAPI
+- **AI**: Claude via Agentlys library
+- **Server**: Uvicorn (ASGI)
+- **Validation**: Pydantic
+- **HTTP Client**: httpx
+
+## Development
+
+- Auto-reload: `uvicorn main:app --reload`
+- API docs: http://localhost:54321/docs
+- OpenAPI schema: http://localhost:54321/openapi.json

@@ -1,6 +1,15 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, RefreshCw, Folder, Eye, Edit } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Play, RefreshCw, Folder, Eye, Edit, Square, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PreviewPanelProps {
@@ -11,16 +20,43 @@ interface PreviewPanelProps {
   onModeChange: (mode: "preview" | "edit") => void;
 }
 
+interface ProjectStatus {
+  directory: string;
+  dev_server_running: boolean;
+  dev_server_port: number;
+  dev_server_url: string | null;
+}
+
 const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextChange, mode, onModeChange }: PreviewPanelProps, ref) => {
   const [iframeUrl, setIframeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [directoryInput, setDirectoryInput] = useState("");
+  const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(null);
+  const [isStartingServer, setIsStartingServer] = useState(false);
   const { toast } = useToast();
 
-  // Load the external project from environment variable or default to port 3000
+  // Fetch project status on mount
   useEffect(() => {
-    const targetUrl = import.meta.env.VITE_TARGET_PROJECT_URL || "http://localhost:3000";
-    setIframeUrl(targetUrl);
+    fetchProjectStatus();
   }, []);
+
+  const fetchProjectStatus = async () => {
+    try {
+      const response = await fetch("/api/project");
+      if (response.ok) {
+        const status = await response.json();
+        setProjectStatus(status);
+        setDirectoryInput(status.directory);
+        if (status.dev_server_url) {
+          setIframeUrl(status.dev_server_url);
+        }
+      }
+    } catch (error) {
+      // Backend not available
+      console.error("Failed to fetch project status:", error);
+    }
+  };
 
   useImperativeHandle(ref, () => ({
     updateElementProperties: (element: any, properties: any) => {
@@ -70,14 +106,128 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
   };
 
   const handleSelectDirectory = () => {
-    toast({
-      title: "Directory Selection",
-      description: "This feature will allow you to select a React project directory",
-    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSetDirectory = async () => {
+    if (!directoryInput.trim()) return;
+
+    try {
+      const response = await fetch("/api/project", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directory: directoryInput }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Invalid directory path");
+      }
+
+      const status = await response.json();
+      setProjectStatus(status);
+      setIsDialogOpen(false);
+
+      toast({
+        title: "Directory Set",
+        description: `Project: ${status.directory.split("/").pop()}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to set directory",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStartServer = async () => {
+    setIsStartingServer(true);
+    try {
+      const response = await fetch("/api/project/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ port: 3000 }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to start dev server");
+      }
+
+      const status = await response.json();
+      setProjectStatus(status);
+
+      if (status.dev_server_url) {
+        setIframeUrl(status.dev_server_url);
+      }
+
+      toast({
+        title: "Server Started",
+        description: `Dev server running at ${status.dev_server_url}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start server",
+        variant: "destructive",
+      });
+    } finally {
+      setIsStartingServer(false);
+    }
+  };
+
+  const handleStopServer = async () => {
+    try {
+      const response = await fetch("/api/project/stop", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        const status = await response.json();
+        setProjectStatus(status);
+        setIframeUrl("");
+
+        toast({
+          title: "Server Stopped",
+          description: "Dev server has been stopped",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to stop server",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="flex flex-col h-full bg-editor">
+      {/* Directory Selection Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Project Directory</DialogTitle>
+            <DialogDescription>
+              Enter the full path to your React project
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={directoryInput}
+              onChange={(e) => setDirectoryInput(e.target.value)}
+              placeholder="/path/to/your/react-project"
+              onKeyDown={(e) => e.key === "Enter" && handleSetDirectory()}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSetDirectory}>Open Project</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Toolbar */}
       <div className="px-4 py-2 border-b border-border flex items-center gap-2 bg-panel">
         <Button
@@ -87,13 +237,41 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
           className="gap-2"
         >
           <Folder className="w-4 h-4" />
-          Select Directory
+          {projectStatus?.directory ? projectStatus.directory.split("/").pop() : "Select Directory"}
         </Button>
+
+        {projectStatus?.dev_server_running ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleStopServer}
+            className="gap-2"
+          >
+            <Square className="w-4 h-4" />
+            Stop
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleStartServer}
+            disabled={isStartingServer}
+            className="gap-2"
+          >
+            {isStartingServer ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Play className="w-4 h-4" />
+            )}
+            Start
+          </Button>
+        )}
+
         <Button
           variant="outline"
           size="sm"
           onClick={handleRefresh}
-          disabled={isLoading}
+          disabled={isLoading || !iframeUrl}
           className="gap-2"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -121,8 +299,8 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
           </Button>
         </div>
         <div className="text-xs text-muted-foreground flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-500" />
-          {mode === "preview" ? "Preview Mode" : "Edit Mode"}
+          <div className={`w-2 h-2 rounded-full ${projectStatus?.dev_server_running ? "bg-green-500" : "bg-gray-400"}`} />
+          {projectStatus?.dev_server_running ? `Running on :${projectStatus.dev_server_port}` : "Server stopped"}
         </div>
       </div>
 

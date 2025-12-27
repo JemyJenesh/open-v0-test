@@ -1,8 +1,8 @@
 @echo off
-REM Start development script for React Vision Studio (Windows)
+REM Start development script for Open V0 (Windows)
 REM This script starts both frontend and backend servers
 
-echo 🚀 Starting React Vision Studio Development Environment
+echo 🚀 Starting Open V0 Development Environment
 echo    This will start 3 servers:
 echo    - Demo Project (port 3000)
 echo    - Backend API (port 54321)

@@ -1,6 +1,6 @@
 # Demo Project
 
-This is a sample React project that can be edited using React Vision Studio.
+This is a sample React project that can be edited using Open V0.
 
 ## Running the Project
 
@@ -14,10 +14,10 @@ npm run dev
 
 The project will be accessible at `http://localhost:3000`
 
-## Using with React Vision Studio
+## Using with Open V0
 
 1. Start this demo project: `npm run dev` (port 3000)
-2. Start React Vision Studio editor (port 8080)
+2. Start Open V0 editor (port 8080)
 3. The editor will connect to this project and allow you to edit it visually
 
 ## Project Structure
@@ -30,6 +30,7 @@ The project will be accessible at `http://localhost:3000`
 ## Features
 
 This demo project includes:
+
 - React Router for navigation
 - Tailwind CSS for styling
 - postMessage communication with the editor
@@ -43,4 +44,3 @@ This demo project includes:
 - Vite
 - React Router
 - Tailwind CSS
-
