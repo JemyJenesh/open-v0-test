@@ -14,6 +14,38 @@ Open V0 is an open-source visual editor for frontend applications, powered by Cl
 
 For detailed architecture and setup, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
+## Three-Service Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Open V0 Editor                          │
+│                     (localhost:8080)                        │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │ Chat Panel  │  │   Preview   │  │ Properties Panel    │  │
+│  │ (AI Help)   │  │   (iframe)  │  │ (Edit Properties)   │  │
+│  └──────┬──────┘  └─────────────┘  └─────────────────────┘  │
+└─────────┼───────────────┼───────────────────────────────────┘
+          │               │
+          │               │ loads via iframe
+          │               ▼
+          │       ┌──────────────────────────┐
+          │       │  Your Frontend Project   │
+          │       │  (localhost:3000)        │
+          │       │  - Any frontend app      │
+          │       │  - Runs independently    │
+          │       └──────────────────────────┘
+          │                       ▲
+          │ sends messages        │ AI updates frontend code
+          │ for AI chat           │
+          ▼                       │
+┌──────────────────────────────────┘
+│  Backend API
+│  (localhost:54321)
+│  - FastAPI
+│  - Claude via Agentlys
+└──────────────────────────┘
+```
+
 ## Project Structure
 
 ```

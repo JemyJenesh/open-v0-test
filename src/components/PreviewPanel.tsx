@@ -127,6 +127,11 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
       setProjectStatus(status);
       setIsDialogOpen(false);
 
+      // Update iframe URL if dev server is running (with cache bust to force reload)
+      if (status.dev_server_url) {
+        setIframeUrl(`${status.dev_server_url}?t=${Date.now()}`);
+      }
+
       toast({
         title: "Directory Set",
         description: `Project: ${status.directory.split("/").pop()}`,
@@ -162,7 +167,7 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
 
       toast({
         title: "Server Started",
-        description: `Dev server running at ${status.dev_server_url}`,
+        description: "Editor integration active",
       });
     } catch (error) {
       toast({
