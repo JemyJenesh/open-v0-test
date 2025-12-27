@@ -2,6 +2,8 @@
 
 ## Project info
 
+React Vision Studio is a visual editor for React applications. It allows you to edit React projects in real-time with AI assistance.
+
 **URL**: https://lovable.dev/projects/906de6ab-5b43-4c6b-a979-a29a237e06af
 
 ## How can I edit this code?
@@ -31,26 +33,34 @@ git clone <YOUR_GIT_URL>
 # Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Quick start - run both frontend and backend
+# Step 3: Quick start - run all 3 servers (demo, backend, editor)
 # On macOS/Linux:
 ./start-dev.sh
 
 # On Windows:
 start-dev.bat
 
-# Or manually:
-# Install frontend dependencies
-npm i
+# This will start:
+# - Demo Project on port 3000
+# - Backend API on port 54321
+# - Vision Studio Editor on port 8080
 
-# Setup backend
+# Or manually:
+# Terminal 1 - Demo Project
+cd demo-project
+npm install
+npm run dev
+
+# Terminal 2 - Backend API
 cd backend
 python -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
 # Create backend/.env and add OPENAI_API_KEY=your_key_here
-python main.py  # In one terminal
+python main.py
 
-# In another terminal, start frontend
+# Terminal 3 - Vision Studio Editor
+npm install
 npm run dev
 ```
 
@@ -68,21 +78,47 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## Architecture
 
-This project is built with:
+This project consists of 3 separate services:
 
-**Frontend:**
+### 1. Vision Studio Editor (port 8080)
+The main editor interface with:
+- AI Chat Panel - Get AI assistance for building components
+- Preview Panel - See your app in real-time
+- Properties Panel - Edit component properties visually
+
+**Technologies:**
+- React 18, TypeScript
+- Vite 5
+- shadcn-ui, Tailwind CSS
+
+### 2. Demo Project (port 3000)
+A sample React application that can be edited with the studio. You can replace this with any React project.
+
+**Technologies:**
+- React 18, TypeScript
 - Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- React Router
 
-**Backend:**
+### 3. Backend API (port 54321)
+Provides AI chat functionality powered by OpenAI.
+
+**Technologies:**
 - Python FastAPI
-- Uvicorn
-- httpx
+- OpenAI API (gpt-4o-mini)
+- Uvicorn server
+
+## How to Use with Your Own Project
+
+1. Start your React project on any port (e.g., 3000, 5173, etc.)
+2. Create a `.env` file in the Vision Studio root:
+   ```
+   VITE_TARGET_PROJECT_URL=http://localhost:YOUR_PORT
+   ```
+3. Run `./start-dev.sh` (or just start the editor: `npm run dev`)
+4. The editor will load your project in the preview panel
+5. Use AI chat to modify your app, and see changes in real-time!
 
 ## How can I deploy this project?
 

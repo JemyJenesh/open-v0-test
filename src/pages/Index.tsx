@@ -6,7 +6,7 @@ import PropertiesPanel from "@/components/PropertiesPanel";
 const Index = () => {
   const [selectedElement, setSelectedElement] = useState<any>(null);
   const [demoContext, setDemoContext] = useState<any>({
-    route: "/demo-app",
+    route: "/",
     scrollPosition: { x: 0, y: 0 },
     viewport: { width: 0, height: 0 },
   });

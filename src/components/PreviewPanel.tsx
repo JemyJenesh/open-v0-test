@@ -16,9 +16,10 @@ const PreviewPanel = forwardRef(({ onElementSelect, selectedElement, onContextCh
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // For demo, we'll use the demo-app route
+  // Load the external project from environment variable or default to port 3000
   useEffect(() => {
-    setIframeUrl("/demo-app");
+    const targetUrl = import.meta.env.VITE_TARGET_PROJECT_URL || "http://localhost:3000";
+    setIframeUrl(targetUrl);
   }, []);
 
   useImperativeHandle(ref, () => ({

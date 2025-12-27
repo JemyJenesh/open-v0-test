@@ -9,14 +9,20 @@ const DemoAbout = () => {
   useEffect(() => {
     const sendContext = () => {
       if (window.parent !== window) {
-        window.parent.postMessage({
-          type: "demo-context",
-          context: {
-            route: location.pathname,
-            scrollPosition: { x: window.scrollX, y: window.scrollY },
-            viewport: { width: window.innerWidth, height: window.innerHeight },
-          }
-        }, "*");
+        window.parent.postMessage(
+          {
+            type: "demo-context",
+            context: {
+              route: location.pathname,
+              scrollPosition: { x: window.scrollX, y: window.scrollY },
+              viewport: {
+                width: window.innerWidth,
+                height: window.innerHeight,
+              },
+            },
+          },
+          "*"
+        );
       }
     };
 
@@ -34,32 +40,34 @@ const DemoAbout = () => {
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      
+
       if (mode === "edit" && window.parent !== window) {
         // Always prevent default and stop propagation in edit mode for non-links
-        const isLink = target.tagName === 'A' || target.closest('a');
-        
+        const isLink = target.tagName === "A" || target.closest("a");
+
         if (isLink) {
           return; // Let links work normally
         }
-        
+
         // Prevent all default behavior and propagation in edit mode
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        
+
         // Generate unique ID for element only if it doesn't have one
-        let elementId = target.getAttribute('data-element-id');
+        let elementId = target.getAttribute("data-element-id");
         if (!elementId) {
           elementId = `${target.tagName.toLowerCase()}_${Date.now()}`;
-          target.setAttribute('data-element-id', elementId);
+          target.setAttribute("data-element-id", elementId);
         }
-        
+
         // Get computed styles
         const styles = window.getComputedStyle(target);
-        
+
         // Analyze all elements of the same type on the page
-        const sameTypeElements = document.querySelectorAll(target.tagName.toLowerCase());
+        const sameTypeElements = document.querySelectorAll(
+          target.tagName.toLowerCase()
+        );
         const valueCounts: Record<string, Map<string, number>> = {
           fontSize: new Map(),
           color: new Map(),
@@ -69,21 +77,32 @@ const DemoAbout = () => {
           width: new Map(),
           height: new Map(),
         };
-        
+
         sameTypeElements.forEach((el) => {
           const elStyles = window.getComputedStyle(el as HTMLElement);
-          ['fontSize', 'color', 'backgroundColor', 'padding', 'margin', 'width', 'height'].forEach(prop => {
+          [
+            "fontSize",
+            "color",
+            "backgroundColor",
+            "padding",
+            "margin",
+            "width",
+            "height",
+          ].forEach((prop) => {
             const value = elStyles[prop as any];
             const count = valueCounts[prop].get(value) || 0;
             valueCounts[prop].set(value, count + 1);
           });
         });
-        
+
         // Sort and format values with frequency labels
-        const commonValuesObj: Record<string, Array<{value: string, label: string}>> = {};
-        Object.keys(valueCounts).forEach(key => {
-          const sortedEntries = Array.from(valueCounts[key].entries())
-            .sort((a, b) => {
+        const commonValuesObj: Record<
+          string,
+          Array<{ value: string; label: string }>
+        > = {};
+        Object.keys(valueCounts).forEach((key) => {
+          const sortedEntries = Array.from(valueCounts[key].entries()).sort(
+            (a, b) => {
               // Try to parse as numbers for numeric sorting
               const aNum = parseFloat(a[0]);
               const bNum = parseFloat(b[0]);
@@ -92,14 +111,17 @@ const DemoAbout = () => {
               }
               // Otherwise sort alphabetically
               return a[0].localeCompare(b[0]);
-            });
-          
-          commonValuesObj[key] = sortedEntries.slice(0, 10).map(([value, count]) => ({
-            value,
-            label: count > 2 ? `${value} (${count}×)` : value
-          }));
+            }
+          );
+
+          commonValuesObj[key] = sortedEntries
+            .slice(0, 10)
+            .map(([value, count]) => ({
+              value,
+              label: count > 2 ? `${value} (${count}×)` : value,
+            }));
         });
-        
+
         // Get direct text content only (not including children)
         let directText = "";
         for (let node of Array.from(target.childNodes)) {
@@ -108,27 +130,34 @@ const DemoAbout = () => {
           }
         }
         directText = directText.trim();
-        
-        window.parent.postMessage({
-          type: "element-click",
-          element: {
-            elementId,
-            tagName: target.tagName,
-            id: target.id,
-            className: target.className,
-            textContent: directText || (target.children.length > 0 ? `[${target.children.length} children]` : ""),
-            styles: {
-              color: styles.color,
-              backgroundColor: styles.backgroundColor,
-              fontSize: styles.fontSize,
-              width: styles.width,
-              height: styles.height,
-              padding: styles.padding,
-              margin: styles.margin,
+
+        window.parent.postMessage(
+          {
+            type: "element-click",
+            element: {
+              elementId,
+              tagName: target.tagName,
+              id: target.id,
+              className: target.className,
+              textContent:
+                directText ||
+                (target.children.length > 0
+                  ? `[${target.children.length} children]`
+                  : ""),
+              styles: {
+                color: styles.color,
+                backgroundColor: styles.backgroundColor,
+                fontSize: styles.fontSize,
+                width: styles.width,
+                height: styles.height,
+                padding: styles.padding,
+                margin: styles.margin,
+              },
+              commonValues: commonValuesObj,
             },
-            commonValues: commonValuesObj,
-          }
-        }, "*");
+          },
+          "*"
+        );
       }
     };
 
@@ -140,15 +169,22 @@ const DemoAbout = () => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === "update-properties") {
-        const element = document.querySelector(`[data-element-id="${event.data.elementId}"]`) as HTMLElement;
+        const element = document.querySelector(
+          `[data-element-id="${event.data.elementId}"]`
+        ) as HTMLElement;
         if (element && event.data.properties) {
           const props = event.data.properties;
           // Only update text content if element has no children and it's not a placeholder
-          if (props.textContent && !props.textContent.startsWith('[') && element.children.length === 0) {
+          if (
+            props.textContent &&
+            !props.textContent.startsWith("[") &&
+            element.children.length === 0
+          ) {
             element.textContent = props.textContent;
           }
           if (props.color) element.style.color = props.color;
-          if (props.backgroundColor) element.style.backgroundColor = props.backgroundColor;
+          if (props.backgroundColor)
+            element.style.backgroundColor = props.backgroundColor;
           if (props.fontSize) element.style.fontSize = props.fontSize;
           if (props.width) element.style.width = props.width;
           if (props.height) element.style.height = props.height;
@@ -169,22 +205,29 @@ const DemoAbout = () => {
       <div className="max-w-4xl mx-auto">
         {/* Navigation */}
         <nav className="mb-8 flex gap-4">
-          <Link to="/demo-app" className="px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+          <Link
+            to="/"
+            className="px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+          >
             Home
           </Link>
-          <Link to="/demo-app/about" className="px-4 py-2 bg-teal-600 text-white rounded-lg shadow hover:shadow-md transition-shadow">
+          <Link
+            to="/about"
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg shadow hover:shadow-md transition-shadow"
+          >
             About
           </Link>
-          <Link to="/demo-app/contact" className="px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+          <Link
+            to="/contact"
+            className="px-4 py-2 bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+          >
             Contact
           </Link>
         </nav>
 
         {/* Header */}
         <header className="mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            About Us
-          </h1>
+          <h1 className="text-5xl font-bold text-gray-900 mb-4">About Us</h1>
           <p className="text-xl text-gray-600">
             Learn more about our visual editor
           </p>
@@ -196,13 +239,15 @@ const DemoAbout = () => {
             Our Mission
           </h2>
           <p className="text-gray-600 text-lg leading-relaxed mb-4">
-            We're building a revolutionary visual editor that makes React development
-            accessible to everyone. Our goal is to bridge the gap between design and
-            code, allowing developers to work more efficiently.
+            We're building a revolutionary visual editor that makes React
+            development accessible to everyone. Our goal is to bridge the gap
+            between design and code, allowing developers to work more
+            efficiently.
           </p>
           <p className="text-gray-600 text-lg leading-relaxed">
-            With our editor, you can visually select elements, modify properties, and
-            see changes in real-time without leaving your workflow.
+            With our editor, you can visually select elements, modify
+            properties, and see changes in real-time without leaving your
+            workflow.
           </p>
         </div>
 
@@ -217,7 +262,9 @@ const DemoAbout = () => {
                 👨‍💻
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-800">John Developer</h3>
+                <h3 className="text-xl font-semibold text-gray-800">
+                  John Developer
+                </h3>
                 <p className="text-gray-600">Lead Engineer</p>
               </div>
             </div>
@@ -226,7 +273,9 @@ const DemoAbout = () => {
                 👩‍🎨
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-800">Jane Designer</h3>
+                <h3 className="text-xl font-semibold text-gray-800">
+                  Jane Designer
+                </h3>
                 <p className="text-gray-600">UI/UX Lead</p>
               </div>
             </div>
@@ -242,22 +291,34 @@ const DemoAbout = () => {
             <li className="flex items-start gap-3">
               <span className="text-2xl">✅</span>
               <div>
-                <h3 className="font-semibold text-gray-800 text-lg">Visual Element Selection</h3>
-                <p className="text-gray-600">Click on any element to edit its properties</p>
+                <h3 className="font-semibold text-gray-800 text-lg">
+                  Visual Element Selection
+                </h3>
+                <p className="text-gray-600">
+                  Click on any element to edit its properties
+                </p>
               </div>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-2xl">✅</span>
               <div>
-                <h3 className="font-semibold text-gray-800 text-lg">AI-Powered Chat</h3>
-                <p className="text-gray-600">Get help building your app with AI assistance</p>
+                <h3 className="font-semibold text-gray-800 text-lg">
+                  AI-Powered Chat
+                </h3>
+                <p className="text-gray-600">
+                  Get help building your app with AI assistance
+                </p>
               </div>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-2xl">✅</span>
               <div>
-                <h3 className="font-semibold text-gray-800 text-lg">Live Preview</h3>
-                <p className="text-gray-600">See changes instantly in the preview panel</p>
+                <h3 className="font-semibold text-gray-800 text-lg">
+                  Live Preview
+                </h3>
+                <p className="text-gray-600">
+                  See changes instantly in the preview panel
+                </p>
               </div>
             </li>
           </ul>

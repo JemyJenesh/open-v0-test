@@ -3,7 +3,11 @@
 # Start development script for React Vision Studio
 # This script starts both frontend and backend servers
 
-echo "🚀 Starting React Vision Studio Development Servers"
+echo "🚀 Starting React Vision Studio Development Environment"
+echo "   This will start 3 servers:"
+echo "   - Demo Project (port 3000)"
+echo "   - Backend API (port 54321)"
+echo "   - Vision Studio Editor (port 8080)"
 echo ""
 
 # Check if Python is installed
@@ -42,17 +46,36 @@ if [ ! -f "backend/.env" ]; then
     fi
 fi
 
-# Check if node_modules exists
+# Check if editor node_modules exists
 if [ ! -d "node_modules" ]; then
-    echo "📦 Installing frontend dependencies..."
+    echo "📦 Installing editor dependencies..."
     npm install
-    echo "✅ Frontend dependencies installed"
+    echo "✅ Editor dependencies installed"
 fi
+
+# Check if demo project node_modules exists
+if [ ! -d "demo-project/node_modules" ]; then
+    echo "📦 Installing demo project dependencies..."
+    cd demo-project
+    npm install
+    cd ..
+    echo "✅ Demo project dependencies installed"
+fi
+
+# Start demo project
+echo "🎨 Starting Demo Project on port 3000..."
+cd demo-project
+npm run dev &
+DEMO_PID=$!
+cd ..
+
+# Wait a bit
+sleep 1
 
 # Start backend in background
 echo "🐍 Starting FastAPI backend on port 54321..."
 cd backend
-source venv/bin/activate
+source .venv/bin/activate
 python main.py &
 BACKEND_PID=$!
 cd ..
@@ -60,26 +83,28 @@ cd ..
 # Wait a bit for backend to start
 sleep 2
 
-# Start frontend
-echo "⚛️  Starting Vite frontend on port 8080..."
+# Start editor
+echo "⚛️  Starting Vision Studio Editor on port 8080..."
 npm run dev &
-FRONTEND_PID=$!
+EDITOR_PID=$!
 
 echo ""
-echo "✅ Both servers are starting!"
+echo "✅ All servers are starting!"
 echo ""
-echo "Frontend: http://localhost:8080"
-echo "Backend:  http://localhost:54321"
+echo "Demo Project: http://localhost:3000"
+echo "Vision Studio Editor: http://localhost:8080"
+echo "Backend API: http://localhost:54321"
 echo "Backend API Docs: http://localhost:54321/docs"
 echo ""
-echo "Press Ctrl+C to stop both servers"
+echo "Press Ctrl+C to stop all servers"
 
 # Function to cleanup on exit
 cleanup() {
     echo ""
-    echo "🛑 Stopping servers..."
+    echo "🛑 Stopping all servers..."
+    kill $DEMO_PID 2>/dev/null
     kill $BACKEND_PID 2>/dev/null
-    kill $FRONTEND_PID 2>/dev/null
+    kill $EDITOR_PID 2>/dev/null
     exit 0
 }
 

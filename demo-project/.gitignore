@@ -12,10 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Environment variables
-.env
-.env.local
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -27,16 +23,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-backend/venv/
-backend/env/
-backend/ENV/
-backend/.venv
-backend/.env
-.pytest_cache/
-.mypy_cache/
