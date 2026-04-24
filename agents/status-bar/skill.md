@@ -23,6 +23,7 @@ The Status Bar System provides a framework for managing and displaying status ba
 Use the `useStatusBar` hook in React components to register status bar items during run-time.
 
 ```typescript
+// WorkspaceStatusBar.tsx
 import {
   useStatusBar,
   StatusBarAlignment,

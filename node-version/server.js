@@ -58,6 +58,7 @@ const MAX_SKILL_CONTEXT_CHARS = Math.max(
   2000,
   Number(process.env.MAX_SKILL_CONTEXT_CHARS || 12000) || 12000,
 );
+const AUTO_FIX_AFTER_EDITS = process.env.AUTO_FIX_AFTER_EDITS !== "false";
 
 // ---------------------------------------------------------------------------
 // State
@@ -323,6 +324,30 @@ function getSkillReferences(skillBody, skillDir) {
   return refs;
 }
 
+function addSkillFromFile(dedup, skillFile, fallbackName) {
+  try {
+    const raw = fs.readFileSync(skillFile, "utf-8");
+    const parsed = parseFrontmatter(raw);
+    const name = String(parsed.meta.name || fallbackName).trim();
+    const description = String(parsed.meta.description || "").trim();
+    const body = String(parsed.body || "").trim();
+    const key = name.toLowerCase();
+
+    if (!key) return;
+    if (dedup.has(key)) return;
+
+    dedup.set(key, {
+      name,
+      description,
+      source: skillFile,
+      body: truncateText(body, MAX_SKILL_BODY_CHARS),
+      references: getSkillReferences(body, path.dirname(skillFile)),
+    });
+  } catch {
+    // Ignore malformed skills and continue
+  }
+}
+
 function discoverSkills() {
   const skillRoots = getSkillRootCandidates();
   const dedup = new Map();
@@ -345,31 +370,28 @@ function discoverSkills() {
       const skillFile = skillFileCandidates.find((p) => fs.existsSync(p));
       if (!skillFile) continue;
 
-      try {
-        const raw = fs.readFileSync(skillFile, "utf-8");
-        const parsed = parseFrontmatter(raw);
-        const name = String(parsed.meta.name || entry.name).trim();
-        const description = String(parsed.meta.description || "").trim();
-        const body = String(parsed.body || "").trim();
-        const key = name.toLowerCase();
+      addSkillFromFile(dedup, skillFile, entry.name);
+    }
+  }
 
-        if (!key) continue;
-        if (dedup.has(key)) continue;
+  // Support a standalone always-on skill file in ./agents/FLEX.md.
+  const flexCandidates = [
+    path.join(ROOT_DIR, "agents", "FLEX.md"),
+    projectDir ? path.join(projectDir, "agents", "FLEX.md") : null,
+  ].filter(Boolean);
 
-        dedup.set(key, {
-          name,
-          description,
-          source: skillFile,
-          body: truncateText(body, MAX_SKILL_BODY_CHARS),
-          references: getSkillReferences(body, skillDir),
-        });
-      } catch {
-        // Ignore malformed skills and continue
-      }
+  for (const flexFile of flexCandidates) {
+    if (fs.existsSync(flexFile) && fs.statSync(flexFile).isFile()) {
+      addSkillFromFile(dedup, flexFile, "flex");
     }
   }
 
   return Array.from(dedup.values());
+}
+
+function isFlexSkill(skill) {
+  if (!skill?.source) return false;
+  return path.basename(skill.source).toLowerCase() === "flex.md";
 }
 
 function getAvailableSkills() {
@@ -849,13 +871,31 @@ app.post("/chat", async (req, res) => {
     const availableSkills = getAvailableSkills();
     let selectedSkills = [];
     if (availableSkills.length) {
+      const alwaysIncludedSkills = availableSkills.filter(isFlexSkill);
+      const selectableSkills = availableSkills.filter(
+        (skill) => !isFlexSkill(skill),
+      );
+
+      selectedSkills = [...alwaysIncludedSkills];
+
       try {
-        selectedSkills = await selectRelevantSkills({
+        const relevantSkills = await selectRelevantSkills({
           client,
-          skills: availableSkills,
+          skills: selectableSkills,
           messages,
           contextParts,
         });
+
+        const existing = new Set(
+          selectedSkills.map((s) => s.name.toLowerCase()),
+        );
+        for (const skill of relevantSkills) {
+          const key = skill.name.toLowerCase();
+          if (!existing.has(key)) {
+            selectedSkills.push(skill);
+            existing.add(key);
+          }
+        }
       } catch (err) {
         console.warn(`Skill selection failed: ${err.message || err}`);
       }
@@ -867,7 +907,8 @@ app.post("/chat", async (req, res) => {
 You have access to code editor tools (read_file, write_file, list_files, delete_file).
 When the user asks you to make changes to the code, use these tools to read and modify files.
 Use relative paths from the project root (e.g., "src/App.tsx", "src/components/Header.tsx").
-Be concise and helpful. IMPORTANT: Never echo full file contents back in your response — just summarize what you found or changed.
+  Be concise and helpful. IMPORTANT: Never echo full file contents back in your response — just summarize what you found or changed.
+  Quality bar: after making code edits, perform a verification/fix pass before finalizing. Re-read files you changed and fix syntax, import, type-shape, and obvious integration issues introduced by your edits. Only provide the final response after this pass.
 
 Context:
 ${contextParts.join("\n")}
@@ -898,6 +939,8 @@ ${
     let iterations = 0;
     const MAX_ITERATIONS = 10;
     let sentVisibleContent = false;
+    const touchedFiles = new Set();
+    let validationPassRequested = false;
 
     while (iterations < MAX_ITERATIONS) {
       iterations++;
@@ -935,6 +978,13 @@ ${
           try {
             args = JSON.parse(tc.function.arguments);
           } catch {}
+          if (
+            tc.function.name === "write_file" ||
+            tc.function.name === "delete_file"
+          ) {
+            const maybePath = String(args.file_path || "").trim();
+            if (maybePath) touchedFiles.add(maybePath);
+          }
           const result = executeToolCall(tc.function.name, args);
           toolResults.push({
             role: "tool",
@@ -944,6 +994,24 @@ ${
         }
         loopMessages.push(...toolResults);
         // Don't stream tool invocations — continue to next iteration
+        continue;
+      }
+
+      // Model finished. If files were edited, force a verification/fix pass first.
+      if (
+        AUTO_FIX_AFTER_EDITS &&
+        touchedFiles.size > 0 &&
+        !validationPassRequested
+      ) {
+        validationPassRequested = true;
+        loopMessages.push({
+          role: "user",
+          content:
+            "Before finalizing, run one mandatory verification pass over the files you changed: " +
+            `${Array.from(touchedFiles).join(", ")}. ` +
+            "Use read_file/write_file as needed to fix issues introduced by your changes (syntax, missing imports, mismatched symbols, obvious type-shape errors). " +
+            "After you complete fixes, provide a concise final summary.",
+        });
         continue;
       }
 
