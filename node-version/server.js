@@ -631,18 +631,8 @@ function updateTemplateFilesForProject(projectRoot, projectName) {
     fs.statSync(extensionJsonPath).isFile()
   ) {
     const raw = fs.readFileSync(extensionJsonPath, "utf-8");
-    const extensionJson = JSON.parse(raw);
-    if (typeof extensionJson.id === "string") {
-      extensionJson.id = extensionJson.id.replace(
-        /v0_dashboard_poc/g,
-        projectName,
-      );
-    }
-    fs.writeFileSync(
-      extensionJsonPath,
-      `${JSON.stringify(extensionJson, null, 2)}\n`,
-      "utf-8",
-    );
+    const nextRaw = raw.replace(/v0_dashboard_poc/g, projectName);
+    fs.writeFileSync(extensionJsonPath, nextRaw, "utf-8");
   }
 
   const rsbuildConfigPath = path.join(projectRoot, "rsbuild.config.ts");
@@ -1006,7 +996,10 @@ app.post("/project/build", async (req, res) => {
     if (code !== 0) {
       return res
         .status(500)
-        .json({ error: `Build failed with exit code ${code}`, output: buildOutput });
+        .json({
+          error: `Build failed with exit code ${code}`,
+          output: buildOutput,
+        });
     }
 
     // Find the zip file produced in artifacts/
@@ -1021,13 +1014,19 @@ app.post("/project/build", async (req, res) => {
     if (!zipFile) {
       return res
         .status(500)
-        .json({ error: "Build succeeded but no zip file found in artifacts/", output: buildOutput });
+        .json({
+          error: "Build succeeded but no zip file found in artifacts/",
+          output: buildOutput,
+        });
     }
 
     const zipPath = path.join(artifactsDir, zipFile);
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Disposition", `attachment; filename="${zipFile}"`);
-    res.setHeader("X-Build-Output", Buffer.from(buildOutput.slice(-2000)).toString("base64"));
+    res.setHeader(
+      "X-Build-Output",
+      Buffer.from(buildOutput.slice(-2000)).toString("base64"),
+    );
 
     const readStream = fs.createReadStream(zipPath);
     readStream.on("error", (err) => {
