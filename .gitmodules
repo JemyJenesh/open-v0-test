@@ -1,0 +1,3 @@
+[submodule "v0-dashboard-poc"]
+	path = v0-dashboard-poc
+	url = https://github.com/NubeIO/v0-dashboard-poc.git

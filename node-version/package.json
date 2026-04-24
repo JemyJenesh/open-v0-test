@@ -1,0 +1,19 @@
+{
+  "name": "open-v0-node-backend",
+  "version": "1.0.0",
+  "description": "Node.js/Express backend for Open V0 using GitHub Copilot API",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.3",
+    "node-fetch": "^2.7.0",
+    "openai": "^4.52.0"
+  }
+}
