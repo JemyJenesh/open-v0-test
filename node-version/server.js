@@ -963,6 +963,83 @@ app.post("/project/stop", (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Build route — cleans artifacts, runs pnpm build, returns zip as download
+// ---------------------------------------------------------------------------
+
+app.post("/project/build", async (req, res) => {
+  if (!projectDir || !fs.existsSync(projectDir)) {
+    return res.status(400).json({ error: "No project directory set." });
+  }
+
+  const artifactsDir = path.join(projectDir, "artifacts");
+
+  // Clean artifacts folder before build
+  if (fs.existsSync(artifactsDir)) {
+    fs.rmSync(artifactsDir, { recursive: true, force: true });
+  }
+  fs.mkdirSync(artifactsDir, { recursive: true });
+
+  // Run pnpm build
+  const buildProc = spawn("pnpm", ["build"], {
+    cwd: projectDir,
+    stdio: ["ignore", "pipe", "pipe"],
+    shell: process.platform === "win32",
+  });
+
+  let buildOutput = "";
+  buildProc.stdout.on("data", (chunk) => {
+    buildOutput += chunk.toString();
+  });
+  buildProc.stderr.on("data", (chunk) => {
+    buildOutput += chunk.toString();
+  });
+
+  buildProc.on("error", (err) => {
+    if (!res.headersSent) {
+      res.status(500).json({ error: `Build process error: ${err.message}` });
+    }
+  });
+
+  buildProc.on("exit", (code) => {
+    if (res.headersSent) return;
+
+    if (code !== 0) {
+      return res
+        .status(500)
+        .json({ error: `Build failed with exit code ${code}`, output: buildOutput });
+    }
+
+    // Find the zip file produced in artifacts/
+    let zipFile = null;
+    try {
+      const files = fs.readdirSync(artifactsDir);
+      zipFile = files.find((f) => f.endsWith(".zip"));
+    } catch {
+      // artifacts dir missing or unreadable
+    }
+
+    if (!zipFile) {
+      return res
+        .status(500)
+        .json({ error: "Build succeeded but no zip file found in artifacts/", output: buildOutput });
+    }
+
+    const zipPath = path.join(artifactsDir, zipFile);
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${zipFile}"`);
+    res.setHeader("X-Build-Output", Buffer.from(buildOutput.slice(-2000)).toString("base64"));
+
+    const readStream = fs.createReadStream(zipPath);
+    readStream.on("error", (err) => {
+      if (!res.headersSent) {
+        res.status(500).json({ error: `Failed to stream zip: ${err.message}` });
+      }
+    });
+    readStream.pipe(res);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Properties route
 // ---------------------------------------------------------------------------
 
