@@ -40,3 +40,4 @@ backend/.venv
 backend/.env
 .pytest_cache/
 .mypy_cache/
+projects

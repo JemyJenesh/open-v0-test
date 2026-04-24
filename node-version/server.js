@@ -32,6 +32,9 @@ const OpenAI = require("openai").default ?? require("openai");
 const PORT = 54321;
 const ROOT_DIR = path.resolve(__dirname, "..");
 const DEFAULT_PROJECT = path.join(ROOT_DIR, "demo-project");
+const PROJECTS_DIR = path.join(ROOT_DIR, "projects");
+const PROJECT_TEMPLATE_DIR = path.join(ROOT_DIR, "v0-dashboard-poc");
+const PROJECT_NAME_RE = /^[a-z0-9_]+$/;
 
 const OPENAI_BASE_URL =
   process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
@@ -603,6 +606,86 @@ function stopDevServer() {
   devServerProcess = null;
 }
 
+function copyDirectoryRecursive(srcDir, destDir) {
+  fs.mkdirSync(destDir, { recursive: true });
+  const entries = fs.readdirSync(srcDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (entry.name === "node_modules" || entry.name === ".git") continue;
+
+    const srcPath = path.join(srcDir, entry.name);
+    const destPath = path.join(destDir, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirectoryRecursive(srcPath, destPath);
+    } else if (entry.isFile()) {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+function updateTemplateFilesForProject(projectRoot, projectName) {
+  const extensionJsonPath = path.join(projectRoot, "extension.json");
+  if (
+    fs.existsSync(extensionJsonPath) &&
+    fs.statSync(extensionJsonPath).isFile()
+  ) {
+    const raw = fs.readFileSync(extensionJsonPath, "utf-8");
+    const extensionJson = JSON.parse(raw);
+    if (typeof extensionJson.id === "string") {
+      extensionJson.id = extensionJson.id.replace(
+        /v0_dashboard_poc/g,
+        projectName,
+      );
+    }
+    fs.writeFileSync(
+      extensionJsonPath,
+      `${JSON.stringify(extensionJson, null, 2)}\n`,
+      "utf-8",
+    );
+  }
+
+  const rsbuildConfigPath = path.join(projectRoot, "rsbuild.config.ts");
+  if (
+    fs.existsSync(rsbuildConfigPath) &&
+    fs.statSync(rsbuildConfigPath).isFile()
+  ) {
+    const rsbuildContent = fs.readFileSync(rsbuildConfigPath, "utf-8");
+    const nextContent = rsbuildContent.replace(
+      /v0_dashboard_poc/g,
+      projectName,
+    );
+    fs.writeFileSync(rsbuildConfigPath, nextContent, "utf-8");
+  }
+}
+
+function createProjectFromTemplate(projectName) {
+  if (!PROJECT_NAME_RE.test(projectName)) {
+    throw new Error(
+      "Invalid project name. Use lowercase letters, numbers, and underscore only.",
+    );
+  }
+
+  if (
+    !fs.existsSync(PROJECT_TEMPLATE_DIR) ||
+    !fs.statSync(PROJECT_TEMPLATE_DIR).isDirectory()
+  ) {
+    throw new Error("Template directory not found: v0-dashboard-poc");
+  }
+
+  fs.mkdirSync(PROJECTS_DIR, { recursive: true });
+  const projectPath = path.join(PROJECTS_DIR, projectName);
+
+  if (fs.existsSync(projectPath)) {
+    throw new Error(`Project already exists: ${projectName}`);
+  }
+
+  copyDirectoryRecursive(PROJECT_TEMPLATE_DIR, projectPath);
+  updateTemplateFilesForProject(projectPath, projectName);
+
+  return projectPath;
+}
+
 // ---------------------------------------------------------------------------
 // EDITOR_SCRIPT — injected into every HTML response from the proxy
 // ---------------------------------------------------------------------------
@@ -785,6 +868,83 @@ app.post("/project", (req, res) => {
   } else {
     res.json(getProjectStatus());
   }
+});
+
+app.post("/project/create", (req, res) => {
+  const projectName = String(req.body?.name || "").trim();
+  if (!projectName) {
+    return res.status(400).json({
+      error:
+        "Project name is required. Use lowercase letters, numbers, and underscore only.",
+    });
+  }
+
+  if (!PROJECT_NAME_RE.test(projectName)) {
+    return res.status(400).json({
+      error:
+        "Invalid project name. Use lowercase letters, numbers, and underscore only.",
+    });
+  }
+
+  let newProjectDir = "";
+  try {
+    newProjectDir = createProjectFromTemplate(projectName);
+  } catch (err) {
+    return res.status(400).json({ error: err.message || String(err) });
+  }
+
+  const wasRunning = devServerProcess !== null;
+  stopDevServer();
+  projectDir = newProjectDir;
+  skillCache = { cacheKey: "", skills: [] };
+
+  // Detect package manager: prefer pnpm if lockfile present, else npm
+  const usesPnpm = fs.existsSync(path.join(newProjectDir, "pnpm-lock.yaml"));
+  const pkgManager = usesPnpm ? "pnpm" : "npm";
+
+  // Run install then respond
+  const installProc = spawn(pkgManager, ["install"], {
+    cwd: newProjectDir,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
+
+  installProc.on("error", (err) => {
+    console.error(`[project/create] install failed: ${err.message}`);
+  });
+
+  installProc.on("exit", (code) => {
+    if (code !== 0) {
+      console.warn(
+        `[project/create] ${pkgManager} install exited with code ${code}`,
+      );
+    } else {
+      console.log(
+        `[project/create] ${pkgManager} install completed for ${projectName}`,
+      );
+    }
+
+    if (wasRunning) {
+      startDevServer(devServerPort);
+      setTimeout(
+        () =>
+          res.json({
+            ...getProjectStatus(),
+            created: true,
+            project_name: projectName,
+            install_exit_code: code,
+          }),
+        2000,
+      );
+    } else {
+      res.json({
+        ...getProjectStatus(),
+        created: true,
+        project_name: projectName,
+        install_exit_code: code,
+      });
+    }
+  });
 });
 
 app.post("/project/start", (req, res) => {

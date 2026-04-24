@@ -214,9 +214,7 @@ ${
                       : "bg-secondary text-secondary-foreground"
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                  <p className="text-sm">{message.content}</p>
                 </div>
                 {message.role === "user" && (
                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
@@ -271,7 +269,7 @@ ${
         </form>
       </div>
     );
-  }
+  },
 );
 
 ChatPanel.displayName = "ChatPanel";
