@@ -1,14 +1,7 @@
-import dotenv from "dotenv";
 import { createApp } from "./app";
 import { LLM_BASE_URL, LLM_MODEL, LLM_PROVIDER, PORT } from "./config/env";
 import { runtimeState } from "./state/runtimeState";
 import { stopDevServer } from "./services/projectService";
-
-try {
-  dotenv.config();
-} catch {
-  // .env is optional.
-}
 
 const app = createApp();
 

@@ -1,4 +1,7 @@
 import path from "path";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const toNumber = (value: string | undefined, fallback: number, min: number) => {
   const parsed = Number(value || fallback);
