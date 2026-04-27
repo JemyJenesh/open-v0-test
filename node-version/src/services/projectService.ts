@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import {
   PROJECT_NAME_RE,
   PROJECTS_DIR,
@@ -22,13 +22,29 @@ export function getProjectStatus(): ProjectStatus {
 }
 
 export function stopDevServer(): void {
-  if (!runtimeState.devServerProcess) return;
+  const proc = runtimeState.devServerProcess;
+  if (!proc) return;
+
+  const pid = proc.pid;
+
   try {
-    runtimeState.devServerProcess.kill();
+    if (process.platform === "win32" && pid) {
+      // Kill npm and all child processes (vite/node) on Windows.
+      spawnSync("taskkill", ["/pid", String(pid), "/t", "/f"], {
+        stdio: "ignore",
+        shell: true,
+      });
+    } else if (pid) {
+      proc.kill("SIGTERM");
+    }
+
+    console.log("Dev server stopped.");
   } catch {
     // Ignore kill errors during shutdown.
+    console.error("Error stopping dev server.");
+  } finally {
+    runtimeState.devServerProcess = null;
   }
-  runtimeState.devServerProcess = null;
 }
 
 export function startDevServer(port = 3000): boolean {
