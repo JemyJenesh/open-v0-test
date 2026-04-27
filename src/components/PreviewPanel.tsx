@@ -72,9 +72,13 @@ const PreviewPanel = ({
     projectList.find((project) => project.directory === directoryInput)?.name ||
     (directoryInput ? getProjectNameFromDirectory(directoryInput) : "");
 
-  // Fetch project status on mount
+  // Fetch project status and list on mount
   useEffect(() => {
-    fetchProjectStatus();
+    const init = async () => {
+      await fetchProjectStatus();
+      await fetchProjectList();
+    };
+    init();
   }, []);
 
   const fetchProjectStatus = async () => {
@@ -236,14 +240,13 @@ const PreviewPanel = ({
       }
 
       toast({
-        title: "Server Started",
-        description: "Editor integration active",
+        title: "Project started",
       });
     } catch (error) {
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to start server",
+          error instanceof Error ? error.message : "Failed to start project",
         variant: "destructive",
       });
     } finally {
@@ -344,14 +347,13 @@ const PreviewPanel = ({
         setIframeUrl("");
 
         toast({
-          title: "Server Stopped",
-          description: "Dev server has been stopped",
+          title: "Project stopped",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to stop server",
+        description: "Failed to stop project",
         variant: "destructive",
       });
     }
@@ -410,7 +412,7 @@ const PreviewPanel = ({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Select Project Directory</DialogTitle>
+            <DialogTitle>Select Project</DialogTitle>
             <DialogDescription>
               Select a project from the projects directory
             </DialogDescription>
