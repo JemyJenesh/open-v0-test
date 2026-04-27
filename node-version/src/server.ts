@@ -16,7 +16,6 @@ const server = app.listen(PORT, () => {
   console.log(`Open V0 Node.js backend running on http://localhost:${PORT}`);
   console.log(`  AI provider : LangChain (${LLM_PROVIDER}, ${LLM_BASE_URL})`);
   console.log(`  Model       : ${LLM_MODEL}`);
-  console.log(`  Project dir : ${runtimeState.projectDir}`);
   console.log("  Set your API key via LLM_API_KEY in .env or POST /api-key");
 });
 

@@ -229,7 +229,7 @@ const PreviewPanel = ({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to start dev server");
+        throw new Error("Failed to start project");
       }
 
       const status = await response.json();
