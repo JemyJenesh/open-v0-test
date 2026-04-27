@@ -16,15 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Play,
-  RefreshCw,
-  Folder,
-  Square,
-  Loader2,
-  Plus,
-  Hammer,
-} from "lucide-react";
+import { Play, RefreshCw, Square, Loader2, Plus, Hammer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface PreviewPanelProps {
@@ -55,7 +47,6 @@ const PreviewPanel = ({
 }: PreviewPanelProps) => {
   const [iframeUrl, setIframeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [directoryInput, setDirectoryInput] = useState("");
   const [projectList, setProjectList] = useState<ProjectListItem[]>([]);
   const [isLoadingProjectList, setIsLoadingProjectList] = useState(false);
@@ -68,10 +59,6 @@ const PreviewPanel = ({
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isBuilding, setIsBuilding] = useState(false);
   const { toast } = useToast();
-  const selectedProjectName =
-    projectList.find((project) => project.directory === directoryInput)?.name ||
-    (directoryInput ? getProjectNameFromDirectory(directoryInput) : "");
-
   // Fetch project status and list on mount
   useEffect(() => {
     const init = async () => {
@@ -170,19 +157,15 @@ const PreviewPanel = ({
     }
   };
 
-  const handleSelectDirectory = () => {
-    fetchProjectList();
-    setIsDialogOpen(true);
-  };
-
-  const handleSetDirectory = async () => {
-    if (!directoryInput.trim()) return;
+  const handleProjectChange = async (directory: string) => {
+    if (!directory.trim()) return;
+    setDirectoryInput(directory);
 
     try {
       const response = await fetch("/api/project", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ directory: directoryInput }),
+        body: JSON.stringify({ directory }),
       });
 
       if (!response.ok) {
@@ -191,22 +174,20 @@ const PreviewPanel = ({
 
       const status = await response.json();
       setProjectStatus(status);
-      setIsDialogOpen(false);
 
-      // Update iframe URL if dev server is running (with cache bust to force reload)
       if (status.dev_server_url) {
         setIframeUrl(`${status.dev_server_url}?t=${Date.now()}`);
       }
 
       toast({
-        title: "Directory Set",
+        title: "Project Opened",
         description: `Project: ${status.directory.split("/").pop()}`,
       });
     } catch (error) {
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to set directory",
+          error instanceof Error ? error.message : "Failed to open project",
         variant: "destructive",
       });
     }
@@ -401,71 +382,6 @@ const PreviewPanel = ({
         </DialogContent>
       </Dialog>
 
-      {/* Directory Selection Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Select Project</DialogTitle>
-            <DialogDescription>
-              Select a project from the projects directory
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {isLoadingProjectList ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading projects...
-              </div>
-            ) : projectList.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-2 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No projects found. Create one to get started.
-                </p>
-                <Button
-                  onClick={() => {
-                    setIsDialogOpen(false);
-                    setIsNewProjectDialogOpen(true);
-                  }}
-                  className="gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create New Project
-                </Button>
-              </div>
-            ) : (
-              <Select
-                value={directoryInput || undefined}
-                onValueChange={(value) => setDirectoryInput(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projectList.map((project) => (
-                    <SelectItem
-                      key={project.directory}
-                      value={project.directory}
-                    >
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            {projectList.length > 0 && (
-              <Button onClick={handleSetDirectory} disabled={!directoryInput}>
-                Open Project
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Toolbar */}
       <div className="px-4 py-2 border-b border-border flex items-center gap-2 bg-panel">
         <Button
@@ -478,15 +394,26 @@ const PreviewPanel = ({
           New Project
         </Button>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSelectDirectory}
-          className="gap-2"
+        <Select
+          value={directoryInput || undefined}
+          onValueChange={handleProjectChange}
+          disabled={isLoadingProjectList || !!projectStatus?.dev_server_running}
         >
-          <Folder className="w-4 h-4" />
-          {selectedProjectName || "Select Project"}
-        </Button>
+          <SelectTrigger className="h-9 w-44 text-sm">
+            <SelectValue
+              placeholder={
+                isLoadingProjectList ? "Loading..." : "Select Project"
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {projectList.map((project) => (
+              <SelectItem key={project.directory} value={project.directory}>
+                {project.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <div className="flex-1" />
         <div className="flex gap-2 items-center">
@@ -505,7 +432,7 @@ const PreviewPanel = ({
               variant="outline"
               size="sm"
               onClick={handleStartServer}
-              disabled={isStartingServer}
+              disabled={isStartingServer || !directoryInput}
               className="gap-2"
             >
               {isStartingServer ? (
@@ -534,7 +461,9 @@ const PreviewPanel = ({
             variant="outline"
             size="sm"
             onClick={handleBuild}
-            disabled={isBuilding || !projectStatus?.directory}
+            disabled={
+              isBuilding || !projectStatus?.directory || !directoryInput
+            }
             className="gap-2"
           >
             {isBuilding ? (
