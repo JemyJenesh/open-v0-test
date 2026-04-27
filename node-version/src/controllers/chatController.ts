@@ -1,14 +1,17 @@
 import type { Request, Response } from "express";
-import OpenAI from "openai";
 import {
-  AUTO_FIX_AFTER_EDITS,
-  OPENAI_BASE_URL,
-  OPENAI_MODEL,
-} from "../config/env";
+  AIMessage,
+  HumanMessage,
+  SystemMessage,
+  ToolMessage,
+  type BaseMessage,
+} from "@langchain/core/messages";
+import { AUTO_FIX_AFTER_EDITS, LLM_MODEL } from "../config/env";
 import {
   CODE_EDITOR_TOOLS,
   executeToolCall,
 } from "../services/codeEditorService";
+import { createChatModel } from "../services/llmService";
 import {
   buildSkillsPromptBlock,
   getAvailableSkills,
@@ -21,6 +24,7 @@ import { logPromptPayload } from "../utils/logging";
 type ChatMessage = {
   role: "system" | "user" | "assistant" | "tool";
   content?: string;
+  tool_call_id?: string;
   tool_calls?: Array<{
     id: string;
     function: {
@@ -32,6 +36,64 @@ type ChatMessage = {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getMessageText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+
+  return content
+    .map((part) => {
+      if (typeof part === "string") return part;
+      if (part && typeof (part as { text?: unknown }).text === "string") {
+        return (part as { text: string }).text;
+      }
+      return "";
+    })
+    .join("\n");
+}
+
+function parseToolArguments(value: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(value || "{}");
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function toLangChainMessages(messages: ChatMessage[]): BaseMessage[] {
+  return messages.map((message) => {
+    if (message.role === "system") {
+      return new SystemMessage(String(message.content || ""));
+    }
+
+    if (message.role === "user") {
+      return new HumanMessage(String(message.content || ""));
+    }
+
+    if (message.role === "tool") {
+      return new ToolMessage({
+        content: String(message.content || ""),
+        tool_call_id: String(message.tool_call_id || "unknown"),
+      });
+    }
+
+    const toolCalls = Array.isArray(message.tool_calls)
+      ? message.tool_calls.map((toolCall) => ({
+          id: toolCall.id,
+          name: toolCall.function.name,
+          args: parseToolArguments(toolCall.function.arguments),
+        }))
+      : [];
+
+    return new AIMessage({
+      content: String(message.content || ""),
+      tool_calls: toolCalls,
+    });
+  });
 }
 
 function buildContextParts(context: Record<string, any> | undefined): string[] {
@@ -58,11 +120,15 @@ function buildContextParts(context: Record<string, any> | undefined): string[] {
 }
 
 export async function chat(req: Request, res: Response): Promise<void> {
-  const key = runtimeState.apiKey || process.env.OPENAI_API_KEY || "";
+  const key =
+    runtimeState.apiKey ||
+    process.env.LLM_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    "";
   if (!key) {
     res.status(401).json({
       error:
-        "OpenAI API key not configured. Set OPENAI_API_KEY in .env or via /api-key.",
+        "LLM API key not configured. Set LLM_API_KEY in .env or via /api-key.",
     });
     return;
   }
@@ -82,9 +148,9 @@ export async function chat(req: Request, res: Response): Promise<void> {
   };
 
   try {
-    const client = new OpenAI({
-      baseURL: OPENAI_BASE_URL,
-      apiKey: key,
+    const model = createChatModel({ apiKey: key });
+    const modelWithTools = model.bindTools(CODE_EDITOR_TOOLS as any, {
+      tool_choice: "auto",
     });
 
     const availableSkills = getAvailableSkills();
@@ -99,7 +165,7 @@ export async function chat(req: Request, res: Response): Promise<void> {
 
       try {
         const relevantSkills = await selectRelevantSkills({
-          client,
+          model,
           skills: selectableSkills,
           messages,
           contextParts,
@@ -136,12 +202,12 @@ ${contextParts.join("\n")}${
         : ""
     }`;
 
-    const openaiMessages: ChatMessage[] = [
+    const chatMessages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
     ];
     for (const msg of messages) {
       if (msg?.role === "user" || msg?.role === "assistant") {
-        openaiMessages.push({
+        chatMessages.push({
           role: msg.role,
           content: String(msg.content || ""),
         });
@@ -149,14 +215,14 @@ ${contextParts.join("\n")}${
     }
 
     logPromptPayload("chat-initial", {
-      model: OPENAI_MODEL,
-      messages: openaiMessages,
+      model: LLM_MODEL,
+      messages: chatMessages,
       tools: CODE_EDITOR_TOOLS,
       tool_choice: "auto",
       stream: false,
     });
 
-    const loopMessages: ChatMessage[] = [...openaiMessages];
+    const loopMessages: ChatMessage[] = [...chatMessages];
     let iterations = 0;
     const maxIterations = 10;
     let sentVisibleContent = false;
@@ -167,38 +233,39 @@ ${contextParts.join("\n")}${
       iterations += 1;
 
       logPromptPayload(`chat-loop-iteration-${iterations}`, {
-        model: OPENAI_MODEL,
+        model: LLM_MODEL,
         messages: loopMessages,
         tools: CODE_EDITOR_TOOLS,
         tool_choice: "auto",
         stream: false,
       });
 
-      const response = await client.chat.completions.create({
-        model: OPENAI_MODEL,
-        messages: loopMessages as any,
-        tools: CODE_EDITOR_TOOLS as any,
-        tool_choice: "auto",
-        stream: false,
-      });
+      const response = await modelWithTools.invoke(
+        toLangChainMessages(loopMessages),
+      );
+      const responseAny = response as any;
+      const toolCalls = Array.isArray(responseAny.tool_calls)
+        ? responseAny.tool_calls.map((toolCall: any) => ({
+            id: String(toolCall.id || ""),
+            function: {
+              name: String(toolCall.name || ""),
+              arguments: JSON.stringify(toolCall.args || {}),
+            },
+          }))
+        : [];
 
-      const choice = response.choices?.[0];
-      const assistantMessage = (choice?.message || {}) as ChatMessage;
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content: getMessageText(response.content),
+        tool_calls: toolCalls.length ? toolCalls : undefined,
+      };
       loopMessages.push(assistantMessage);
 
-      if (
-        choice?.finish_reason === "tool_calls" &&
-        assistantMessage.tool_calls?.length
-      ) {
+      if (assistantMessage.tool_calls?.length) {
         const toolResults: ChatMessage[] = [];
 
         for (const toolCall of assistantMessage.tool_calls) {
-          let args: Record<string, unknown> = {};
-          try {
-            args = JSON.parse(toolCall.function.arguments || "{}");
-          } catch {
-            args = {};
-          }
+          const args = parseToolArguments(toolCall.function.arguments || "{}");
 
           if (
             toolCall.function.name === "write_file" ||
@@ -212,11 +279,9 @@ ${contextParts.join("\n")}${
           toolResults.push({
             role: "tool",
             content: result,
+            tool_call_id: toolCall.id,
             tool_calls: undefined,
           });
-
-          (toolResults[toolResults.length - 1] as any).tool_call_id =
-            toolCall.id;
         }
 
         loopMessages.push(...toolResults);

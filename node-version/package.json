@@ -11,12 +11,13 @@
     "dev": "tsx watch src/server.ts"
   },
   "dependencies": {
+    "@langchain/core": "^0.3.64",
+    "@langchain/openai": "^0.6.16",
     "dotenv": "^16.4.5",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "http-proxy-middleware": "^3.0.3",
-    "node-fetch": "^2.7.0",
-    "openai": "^4.52.0"
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

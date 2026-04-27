@@ -2,7 +2,7 @@ import { DEFAULT_PROJECT } from "../config/env";
 import type { RuntimeState } from "../types";
 
 export const runtimeState: RuntimeState = {
-  apiKey: process.env.OPENAI_API_KEY || "",
+  apiKey: process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || "",
   projectDir: DEFAULT_PROJECT,
   devServerProcess: null,
   devServerPort: 3000,

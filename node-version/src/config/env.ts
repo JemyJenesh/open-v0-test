@@ -13,9 +13,13 @@ export const PROJECTS_DIR = path.join(ROOT_DIR, "projects");
 export const PROJECT_TEMPLATE_DIR = path.join(ROOT_DIR, "v0-dashboard-poc");
 export const PROJECT_NAME_RE = /^[a-z0-9_]+$/;
 
-export const OPENAI_BASE_URL =
-  process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-export const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
+export const LLM_PROVIDER = process.env.LLM_PROVIDER || "openai";
+export const LLM_BASE_URL =
+  process.env.LLM_BASE_URL ||
+  process.env.OPENAI_BASE_URL ||
+  "https://api.openai.com/v1";
+export const LLM_MODEL =
+  process.env.LLM_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
 export const LOG_PROMPTS = process.env.LOG_PROMPTS === "true";
 export const LOG_PROMPT_MAX_CHARS = toNumber(
   process.env.LOG_PROMPT_MAX_CHARS,

@@ -1,12 +1,12 @@
 import fs from "fs";
 import path from "path";
-import type OpenAI from "openai";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import {
   MAX_AUTO_SKILLS,
   MAX_SKILL_BODY_CHARS,
   MAX_SKILL_CONTEXT_CHARS,
   MAX_SKILL_REFERENCE_CHARS,
-  OPENAI_MODEL,
   ROOT_DIR,
   SKILLS_AUTOLOAD,
 } from "../config/env";
@@ -223,12 +223,12 @@ function parseJsonObject(text: string): Record<string, unknown> | null {
 }
 
 export async function selectRelevantSkills(args: {
-  client: OpenAI;
+  model: BaseChatModel;
   skills: SkillDefinition[];
   messages: Array<{ role: string; content: string }>;
   contextParts: string[];
 }): Promise<SkillDefinition[]> {
-  const { client, skills, messages, contextParts } = args;
+  const { model, skills, messages, contextParts } = args;
 
   if (!SKILLS_AUTOLOAD || !skills.length || MAX_AUTO_SKILLS === 0) {
     return [];
@@ -250,23 +250,16 @@ export async function selectRelevantSkills(args: {
     '{"relevant_skills":[{"name":"skill-name","reason":"short reason"}]}. ' +
     `Choose at most ${MAX_AUTO_SKILLS} skills and only from the provided list.`;
 
-  const selectionResponse = await client.chat.completions.create({
-    model: OPENAI_MODEL,
-    messages: [
-      { role: "system", content: selectorPrompt },
-      {
-        role: "user",
-        content:
-          `Conversation context:\n${contextParts.join("\n")}\n\n` +
-          `Recent messages:\n${recentMessages || "(none)"}\n\n` +
-          `Available skills:\n${skillList}`,
-      },
-    ],
-    stream: false,
-    temperature: 0,
-  });
+  const selectionResponse = await model.invoke([
+    new SystemMessage(selectorPrompt),
+    new HumanMessage(
+      `Conversation context:\n${contextParts.join("\n")}\n\n` +
+        `Recent messages:\n${recentMessages || "(none)"}\n\n` +
+        `Available skills:\n${skillList}`,
+    ),
+  ]);
 
-  const raw = getMessageText(selectionResponse.choices?.[0]?.message?.content);
+  const raw = getMessageText(selectionResponse.content);
   const parsed = parseJsonObject(raw) || {};
   const selected = Array.isArray(parsed.relevant_skills)
     ? (parsed.relevant_skills as Array<{ name?: string }>)
