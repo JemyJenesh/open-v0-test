@@ -2,6 +2,13 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -36,6 +43,16 @@ interface ProjectStatus {
   dev_server_url: string | null;
 }
 
+interface ProjectListItem {
+  name: string;
+  directory: string;
+}
+
+const getProjectNameFromDirectory = (directory: string) => {
+  const parts = directory.split(/[\\/]/).filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : directory;
+};
+
 const PreviewPanel = forwardRef(
   (
     {
@@ -51,6 +68,8 @@ const PreviewPanel = forwardRef(
     const [isLoading, setIsLoading] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [directoryInput, setDirectoryInput] = useState("");
+    const [projectList, setProjectList] = useState<ProjectListItem[]>([]);
+    const [isLoadingProjectList, setIsLoadingProjectList] = useState(false);
     const [projectStatus, setProjectStatus] = useState<ProjectStatus | null>(
       null,
     );
@@ -60,6 +79,10 @@ const PreviewPanel = forwardRef(
     const [isCreatingProject, setIsCreatingProject] = useState(false);
     const [isBuilding, setIsBuilding] = useState(false);
     const { toast } = useToast();
+    const selectedProjectName =
+      projectList.find((project) => project.directory === directoryInput)
+        ?.name ||
+      (directoryInput ? getProjectNameFromDirectory(directoryInput) : "");
 
     // Fetch project status on mount
     useEffect(() => {
@@ -72,7 +95,9 @@ const PreviewPanel = forwardRef(
         if (response.ok) {
           const status = await response.json();
           setProjectStatus(status);
-          setDirectoryInput(status.directory);
+          if (status.dev_server_running && status.directory) {
+            setDirectoryInput(status.directory);
+          }
           if (status.dev_server_url) {
             setIframeUrl(status.dev_server_url);
           }
@@ -80,6 +105,39 @@ const PreviewPanel = forwardRef(
       } catch (error) {
         // Backend not available
         console.error("Failed to fetch project status:", error);
+      }
+    };
+
+    const fetchProjectList = async () => {
+      setIsLoadingProjectList(true);
+      try {
+        const response = await fetch("/api/project/list");
+        if (!response.ok) {
+          throw new Error("Failed to fetch projects");
+        }
+
+        const data = await response.json();
+        const projects = Array.isArray(data?.projects)
+          ? (data.projects as ProjectListItem[])
+          : [];
+
+        setProjectList(projects);
+
+        if (
+          projects.length > 0 &&
+          !projects.some((item) => item.directory === directoryInput)
+        ) {
+          setDirectoryInput(projects[0].directory);
+        }
+
+        if (projects.length === 0) {
+          setDirectoryInput("");
+        }
+      } catch (error) {
+        console.error("Failed to fetch project list:", error);
+        setProjectList([]);
+      } finally {
+        setIsLoadingProjectList(false);
       }
     };
 
@@ -146,6 +204,7 @@ const PreviewPanel = forwardRef(
     };
 
     const handleSelectDirectory = () => {
+      fetchProjectList();
       setIsDialogOpen(true);
     };
 
@@ -249,6 +308,7 @@ const PreviewPanel = forwardRef(
 
         setProjectStatus(data);
         setDirectoryInput(data.directory);
+        await fetchProjectList();
         setIsNewProjectDialogOpen(false);
         setNewProjectName("");
 
@@ -383,22 +443,61 @@ const PreviewPanel = forwardRef(
             <DialogHeader>
               <DialogTitle>Select Project Directory</DialogTitle>
               <DialogDescription>
-                Enter the full path to your React project
+                Select a project from the projects directory
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <Input
-                value={directoryInput}
-                onChange={(e) => setDirectoryInput(e.target.value)}
-                placeholder="/path/to/your/react-project"
-                onKeyDown={(e) => e.key === "Enter" && handleSetDirectory()}
-              />
+              {isLoadingProjectList ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading projects...
+                </div>
+              ) : projectList.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-2 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No projects found. Create one to get started.
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setIsDialogOpen(false);
+                      setIsNewProjectDialogOpen(true);
+                    }}
+                    className="gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create New Project
+                  </Button>
+                </div>
+              ) : (
+                <Select
+                  value={directoryInput || undefined}
+                  onValueChange={(value) => setDirectoryInput(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projectList.map((project) => (
+                      <SelectItem
+                        key={project.directory}
+                        value={project.directory}
+                      >
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSetDirectory}>Open Project</Button>
+              {projectList.length > 0 && (
+                <Button onClick={handleSetDirectory} disabled={!directoryInput}>
+                  Open Project
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -422,9 +521,7 @@ const PreviewPanel = forwardRef(
             className="gap-2"
           >
             <Folder className="w-4 h-4" />
-            {projectStatus?.directory
-              ? projectStatus.directory.split("/").pop()
-              : "Select Directory"}
+            {selectedProjectName || "Select Project"}
           </Button>
 
           {projectStatus?.dev_server_running ? (

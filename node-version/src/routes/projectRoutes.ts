@@ -3,6 +3,7 @@ import {
   buildProject,
   createProject,
   getProject,
+  getProjectList,
   setProject,
   startProject,
   stopProject,
@@ -11,6 +12,7 @@ import {
 const router = Router();
 
 router.get("/project", getProject);
+router.get("/project/list", getProjectList);
 router.post("/project", setProject);
 router.post("/project/create", createProject);
 router.post("/project/start", startProject);

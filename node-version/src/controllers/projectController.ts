@@ -6,6 +6,7 @@ import { PROJECT_NAME_RE } from "../config/env";
 import {
   createProjectFromTemplate,
   getProjectStatus,
+  listProjects,
   setProjectDir,
   startDevServer,
   stopDevServer,
@@ -14,6 +15,10 @@ import { runtimeState } from "../state/runtimeState";
 
 export function getProject(req: Request, res: Response): void {
   res.json(getProjectStatus());
+}
+
+export function getProjectList(req: Request, res: Response): void {
+  res.json({ projects: listProjects() });
 }
 
 export function setProject(req: Request, res: Response): void {
@@ -168,12 +173,10 @@ export function buildProject(req: Request, res: Response): void {
     if (res.headersSent) return;
 
     if (code !== 0) {
-      res
-        .status(500)
-        .json({
-          error: `Build failed with exit code ${code}`,
-          output: buildOutput,
-        });
+      res.status(500).json({
+        error: `Build failed with exit code ${code}`,
+        output: buildOutput,
+      });
       return;
     }
 

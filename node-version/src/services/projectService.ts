@@ -63,6 +63,24 @@ export function setProjectDir(directory: string): void {
   runtimeState.skillCache = { cacheKey: "", skills: [] };
 }
 
+export function listProjects(): Array<{ name: string; directory: string }> {
+  if (
+    !fs.existsSync(PROJECTS_DIR) ||
+    !fs.statSync(PROJECTS_DIR).isDirectory()
+  ) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(PROJECTS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({
+      name: entry.name,
+      directory: path.join(PROJECTS_DIR, entry.name),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 function copyDirectoryRecursive(srcDir: string, destDir: string): void {
   fs.mkdirSync(destDir, { recursive: true });
   const entries = fs.readdirSync(srcDir, { withFileTypes: true });
