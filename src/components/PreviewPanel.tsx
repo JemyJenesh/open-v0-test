@@ -75,8 +75,8 @@ const PreviewPanel = ({
   // Fetch project status and list on mount
   useEffect(() => {
     const init = async () => {
-      await fetchProjectStatus();
       await fetchProjectList();
+      await fetchProjectStatus();
     };
     init();
   }, []);
@@ -114,13 +114,6 @@ const PreviewPanel = ({
         : [];
 
       setProjectList(projects);
-
-      if (
-        projects.length > 0 &&
-        !projects.some((item) => item.directory === directoryInput)
-      ) {
-        setDirectoryInput(projects[0].directory);
-      }
 
       if (projects.length === 0) {
         setDirectoryInput("");
