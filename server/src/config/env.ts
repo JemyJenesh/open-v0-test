@@ -22,7 +22,7 @@ export const LLM_BASE_URL =
   process.env.OPENAI_BASE_URL ||
   "https://api.openai.com/v1";
 export const LLM_MODEL =
-  process.env.LLM_MODEL || process.env.OPENAI_MODEL || "gpt-4o";
+  process.env.LLM_MODEL || process.env.OPENAI_MODEL || "gpt-5.4";
 export const LOG_PROMPTS = process.env.LOG_PROMPTS === "true";
 export const LOG_PROMPT_MAX_CHARS = toNumber(
   process.env.LOG_PROMPT_MAX_CHARS,

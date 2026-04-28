@@ -48,3 +48,65 @@ When converting a component from `.jsx` to `.tsx`:
 ## Summary
 
 Use `.tsx` as the default and required format for all new React component files in this project.
+
+---
+
+## ⚠️ UI Components
+
+Use only the following components from `@pjnube/flex-ui`:
+
+- `accordion`
+- `alert-dialog`
+- `aspect-ratio`
+- `avatar`
+- `badge`
+- `breadcrumb`
+- `button-group`
+- `button`
+- `calendar`
+- `card`
+- `change-log`
+- `chart`
+- `checkbox`
+- `collapsible`
+- `command`
+- `context-menu`
+- `dialog`
+- `dropdown-menu`
+- `dropzone`
+- `field`
+- `form`
+- `index`
+- `input-group`
+- `input`
+- `kbd`
+- `label`
+- `markdown-viewer`
+- `menubar`
+- `multi-select`
+- `popover`
+- `progress`
+- `radio-group`
+- `resizable`
+- `scroll-area`
+- `scrollable-tab-list`
+- `select`
+- `separator`
+- `sheet`
+- `sidebar`
+- `skeleton`
+- `slider`
+- `sonner`
+- `spinner`
+- `split-button`
+- `switch`
+- `table`
+- `tabs`
+- `textarea`
+- `toggle-group`
+- `toggle`
+- `tooltip`
+
+Do not use other UI component libraries.
+
+Tailwind CSS is supported for styling and layout utilities.
