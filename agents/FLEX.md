@@ -110,3 +110,9 @@ Use only the following components from `@pjnube/flex-ui`:
 Do not use other UI component libraries.
 
 Tailwind CSS is supported for styling and layout utilities.
+
+Import cn from "@pjnube/flex-ui"
+
+```
+import { cn } from '@pjnube/flex-ui';
+```
