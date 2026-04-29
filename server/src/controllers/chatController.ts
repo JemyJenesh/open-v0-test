@@ -224,10 +224,11 @@ ${contextParts.join("\n")}${
 
     const loopMessages: ChatMessage[] = [...chatMessages];
     let iterations = 0;
-    const maxIterations = 10;
+    const maxIterations = 25;
     let sentVisibleContent = false;
     const touchedFiles = new Set<string>();
     let validationPassRequested = false;
+    let lastAssistantText = "";
 
     while (iterations < maxIterations) {
       iterations += 1;
@@ -260,6 +261,8 @@ ${contextParts.join("\n")}${
         tool_calls: toolCalls.length ? toolCalls : undefined,
       };
       loopMessages.push(assistantMessage);
+      const msgText = String(assistantMessage.content || "");
+      if (msgText) lastAssistantText = msgText;
 
       if (assistantMessage.tool_calls?.length) {
         const toolResults: ChatMessage[] = [];
@@ -324,9 +327,23 @@ ${contextParts.join("\n")}${
     }
 
     if (!sentVisibleContent) {
-      sendChunk(
-        "I could not produce a response after multiple tool steps. Please try again or simplify the prompt.",
-      );
+      if (lastAssistantText) {
+        const words = lastAssistantText.split(/(\s+)/);
+        for (const word of words) {
+          sendChunk(word);
+          await delay(0);
+        }
+      } else if (touchedFiles.size > 0) {
+        sendChunk(
+          "I made code changes across " +
+            Array.from(touchedFiles).join(", ") +
+            ". Please check the preview for updates.",
+        );
+      } else {
+        sendChunk(
+          "I could not produce a response after multiple tool steps. Please try again or simplify the prompt.",
+        );
+      }
     }
 
     res.write("data: [DONE]\\n\\n");
