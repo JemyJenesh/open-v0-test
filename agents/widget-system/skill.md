@@ -13,6 +13,7 @@ user-invocable: true
 1. Add an `import` for the new `*WidgetContribution` class.
 2. Call `WidgetContribution.addContribution(bind, NewWidgetContribution);` in the `// widgets` section (alongside any existing registrations).
    Also ensure the flex module wires **platform** dashboard services when the host does not (typical in dev): import **`bindDashboardSpi`** from **`dashboard-spi/module-entry`** and call **`bindDashboardSpi(module)`** inside your **`FlexModule`** body (e.g. behind `import.meta.env.DEV`), **before** contribution bindings that depend on those services.
+3. In created projects, **do not move or re-place existing `StatWidgetContribution` registration/import lines**. Preserve current placement exactly and only add new widget registrations relative to that existing structure.
    Failing to register the contribution means the widget never appears in the palette. Do not finish a widget creation task without completing this step.
 
 ---
@@ -150,7 +151,8 @@ query: {
 
 1. Import **`bindDashboardSpi`** from **`dashboard-spi/module-entry`** when your extension must register dashboard platform services (common in dev).
 2. Import **`WidgetContribution`** and your **`MyWidgetContribution`** from **`dashboard-spi/spi`** and **`~/contributions/...`** respectively.
-3. Inside **`FlexModule`**, call **`bindDashboardSpi(module)`** if required, then call **`WidgetContribution.addContribution(bind, MyWidgetContribution)`** in the **`// widgets`** section.
+3. Inside **`FlexModule`**, call **`bindDashboardSpi(module)`** if required, then call **`WidgetContribution.addContribution(bind, MyWidgetContribution)`** in the **existing widget-registration area**.
+  Preserve the current placement of **`StatWidgetContribution`** (for example, if it is registered inside a `DEV` block, keep it there and add new widgets without relocating it).
 
 ```typescript
 // module-entry.ts
@@ -170,7 +172,7 @@ export default FlexModule((module) => {
 });
 ```
 
-**Never skip or defer widget registration.** After writing the contribution class, open **`module-entry.ts`**, add the import(s), and add **`WidgetContribution.addContribution`**.
+**Never skip or defer widget registration.** After writing the contribution class, open **`module-entry.ts`**, add the import(s), and add **`WidgetContribution.addContribution`** without moving existing **`StatWidgetContribution`** placement.
 
 ## **`WidgetContribution.addContribution`** binds **`IComponentContribution`** and your class so **`initialize()`** runs and **`registerToFactory()`** registers the factory with the Flex **`ComponentFactoryRegistry`**.
 
@@ -231,6 +233,6 @@ If widgets need queries beyond what existing datasource definitions support:
 
 - [ ] **Step 1**: Widget component in **`src/widgets/`** accepts **`WidgetConfigMetadata<T>`** and uses **`useMappedValue` / `useMappedData` / `useWidgetData`** with consistent **variable names**. UI primitives from **`@pjnube/flex-ui/*`**.
 - [ ] **Step 2**: **`MyWidgetContribution`** in **`src/contributions/`** with unique **`widgetFactoryId`**, **`contributionDetails`** (including **`defaultDataMappings`** if data-driven), and **`createWidgetConfig`**.
-- [ ] **Step 3 ⚠️ REQUIRED**: Edit **`module-entry.ts`** — **`bindDashboardSpi(module)`** when needed; import **`MyWidgetContribution`**; call **`WidgetContribution.addContribution(bind, MyWidgetContribution)`** in **`// widgets`**.
+- [ ] **Step 3 ⚠️ REQUIRED**: Edit **`module-entry.ts`** — **`bindDashboardSpi(module)`** when needed; import **`MyWidgetContribution`**; call **`WidgetContribution.addContribution(bind, MyWidgetContribution)`** in the existing registration area; **do not relocate existing `StatWidgetContribution` placement**.
 - [ ] **Bindings**: **`defaultDataMappings`** **`variableName`** values match hooks; **`query`** matches the datasource definition you target (**mock** supports **`number`**, **`timeseries`**, **`json`** + **`statTrend`**, **`table`**).
 - [ ] **Datasource**: If adding a new backend/mock type, **`DatasourceContribution`** registered and **`querySchema`** documents the **`query`** object.
