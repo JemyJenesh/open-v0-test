@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { spawn, spawnSync } from "child_process";
+import http from "http";
 import {
   PROJECT_NAME_RE,
   PROJECTS_DIR,
@@ -19,6 +20,59 @@ export function getProjectStatus(): ProjectStatus {
       ? `http://localhost:${runtimeState.devServerPort}/`
       : null,
   };
+}
+
+function isReachable(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = http.request(
+      {
+        host,
+        port,
+        method: "GET",
+        path: "/",
+        timeout: 1500,
+      },
+      () => {
+        resolve(true);
+      },
+    );
+
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(false);
+    });
+
+    req.on("error", () => {
+      resolve(false);
+    });
+
+    req.end();
+  });
+}
+
+export async function waitForDevServerReady(
+  port: number,
+  timeoutMs = 45000,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (await isReachable("127.0.0.1", port)) {
+      return true;
+    }
+
+    if (await isReachable("localhost", port)) {
+      return true;
+    }
+
+    if (!runtimeState.devServerProcess) {
+      return false;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 400));
+  }
+
+  return false;
 }
 
 export function stopDevServer(): void {

@@ -6,7 +6,7 @@ import { EDITOR_SCRIPT } from "../config/editorScript";
 import { runtimeState } from "../state/runtimeState";
 
 export function proxyToProject(req: Request, res: Response): void {
-  const targetBase = `http://localhost:${runtimeState.devServerPort}`;
+  const targetBase = `http://127.0.0.1:${runtimeState.devServerPort}`;
   const targetUrl = `${targetBase}${req.url}`;
   const parsedTarget = new URL(targetUrl);
 

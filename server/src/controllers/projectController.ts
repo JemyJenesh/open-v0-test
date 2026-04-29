@@ -10,6 +10,7 @@ import {
   setProjectDir,
   startDevServer,
   stopDevServer,
+  waitForDevServerReady,
 } from "../services/projectService";
 import { runtimeState } from "../state/runtimeState";
 
@@ -21,7 +22,7 @@ export function getProjectList(req: Request, res: Response): void {
   res.json({ projects: listProjects() });
 }
 
-export function setProject(req: Request, res: Response): void {
+export async function setProject(req: Request, res: Response): Promise<void> {
   const directory = String(req.body?.directory || "").trim();
   if (
     !directory ||
@@ -38,7 +39,8 @@ export function setProject(req: Request, res: Response): void {
 
   if (wasRunning) {
     startDevServer(runtimeState.devServerPort);
-    setTimeout(() => res.json(getProjectStatus()), 2000);
+    await waitForDevServerReady(runtimeState.devServerPort);
+    res.json(getProjectStatus());
     return;
   }
 
@@ -89,7 +91,7 @@ export function createProject(req: Request, res: Response): void {
     console.error(`[project/create] install failed: ${err.message}`);
   });
 
-  installProc.on("exit", (code) => {
+  installProc.on("exit", async (code) => {
     if (code !== 0) {
       console.warn(
         `[project/create] ${packageManager} install exited with code ${code}`,
@@ -111,7 +113,8 @@ export function createProject(req: Request, res: Response): void {
 
     if (wasRunning) {
       startDevServer(runtimeState.devServerPort);
-      setTimeout(sendResponse, 2000);
+      await waitForDevServerReady(runtimeState.devServerPort);
+      sendResponse();
       return;
     }
 
@@ -119,7 +122,7 @@ export function createProject(req: Request, res: Response): void {
   });
 }
 
-export function startProject(req: Request, res: Response): void {
+export async function startProject(req: Request, res: Response): Promise<void> {
   const port = Number(req.body?.port || 3000);
   if (!startDevServer(port)) {
     res
@@ -128,7 +131,8 @@ export function startProject(req: Request, res: Response): void {
     return;
   }
 
-  setTimeout(() => res.json(getProjectStatus()), 2000);
+  await waitForDevServerReady(port);
+  res.json(getProjectStatus());
 }
 
 export function stopProject(req: Request, res: Response): void {
