@@ -13,7 +13,7 @@ export const PORT = 54321;
 export const ROOT_DIR = path.resolve(__dirname, "..", "..", "..");
 export const DEFAULT_PROJECT = path.join(ROOT_DIR, "demo-project");
 export const PROJECTS_DIR = path.join(ROOT_DIR, "projects");
-export const PROJECT_TEMPLATE_DIR = path.join(ROOT_DIR, "v0-dashboard-poc");
+export const PROJECT_TEMPLATE_DIR = path.join(ROOT_DIR, "v0-dashboard-widget");
 export const PROJECT_NAME_RE = /^[a-z0-9_]+$/;
 
 export const LLM_PROVIDER = process.env.LLM_PROVIDER || "openai";

@@ -14,6 +14,75 @@ import {
 } from "../services/projectService";
 import { runtimeState } from "../state/runtimeState";
 
+type ScriptRunResult = {
+  script: string;
+  status: "passed" | "failed" | "skipped";
+  exit_code: number | null;
+  skipped_reason?: string;
+};
+
+function readPackageScripts(projectDir: string): Record<string, unknown> {
+  const pkgPath = path.join(projectDir, "package.json");
+  if (!fs.existsSync(pkgPath)) {
+    return {};
+  }
+
+  try {
+    const pkgRaw = fs.readFileSync(pkgPath, "utf-8");
+    const pkgJson = JSON.parse(pkgRaw) as { scripts?: Record<string, unknown> };
+    return pkgJson.scripts || {};
+  } catch {
+    return {};
+  }
+}
+
+function runPackageScript(
+  projectDir: string,
+  packageManager: "pnpm" | "npm",
+  script: string,
+): Promise<number | null> {
+  return new Promise((resolve) => {
+    const proc = spawn(packageManager, ["run", script], {
+      cwd: projectDir,
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    });
+
+    proc.on("error", () => resolve(null));
+    proc.on("exit", (code) => resolve(code));
+  });
+}
+
+async function runQualityChecks(
+  projectDir: string,
+  packageManager: "pnpm" | "npm",
+): Promise<ScriptRunResult[]> {
+  const scripts = readPackageScripts(projectDir);
+  const plan = ["lint:fix", "lint", "typecheck"];
+  const results: ScriptRunResult[] = [];
+
+  for (const script of plan) {
+    if (typeof scripts[script] !== "string") {
+      results.push({
+        script,
+        status: "skipped",
+        exit_code: null,
+        skipped_reason: "script not defined",
+      });
+      continue;
+    }
+
+    const exitCode = await runPackageScript(projectDir, packageManager, script);
+    results.push({
+      script,
+      status: exitCode === 0 ? "passed" : "failed",
+      exit_code: exitCode,
+    });
+  }
+
+  return results;
+}
+
 export function getProject(req: Request, res: Response): void {
   res.json(getProjectStatus());
 }
@@ -92,6 +161,8 @@ export function createProject(req: Request, res: Response): void {
   });
 
   installProc.on("exit", async (code) => {
+    let qualityChecks: ScriptRunResult[] = [];
+
     if (code !== 0) {
       console.warn(
         `[project/create] ${packageManager} install exited with code ${code}`,
@@ -100,14 +171,35 @@ export function createProject(req: Request, res: Response): void {
       console.log(
         `[project/create] ${packageManager} install completed for ${projectName}`,
       );
+
+      qualityChecks = await runQualityChecks(newProjectDir, packageManager);
+
+      for (const result of qualityChecks) {
+        if (result.status === "skipped") {
+          console.log(
+            `[project/create] ${result.script} skipped (${result.skipped_reason})`,
+          );
+          continue;
+        }
+
+        console.log(
+          `[project/create] ${result.script} ${result.status} (exit ${result.exit_code})`,
+        );
+      }
     }
 
     const sendResponse = () => {
+      const quality_checks_passed = qualityChecks.every(
+        (result) => result.status === "passed" || result.status === "skipped",
+      );
+
       res.json({
         ...getProjectStatus(),
         created: true,
         project_name: projectName,
         install_exit_code: code,
+        quality_checks: qualityChecks,
+        quality_checks_passed,
       });
     };
 

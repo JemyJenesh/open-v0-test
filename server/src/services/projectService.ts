@@ -181,7 +181,7 @@ function updateTemplateFilesForProject(
     const raw = fs.readFileSync(extensionJsonPath, "utf-8");
     fs.writeFileSync(
       extensionJsonPath,
-      raw.replace(/v0_dashboard_poc/g, projectName),
+      raw.replace(/v0_dashboard_widget/g, projectName),
       "utf-8",
     );
   }
@@ -194,7 +194,7 @@ function updateTemplateFilesForProject(
     const content = fs.readFileSync(rsbuildConfigPath, "utf-8");
     fs.writeFileSync(
       rsbuildConfigPath,
-      content.replace(/v0_dashboard_poc/g, projectName),
+      content.replace(/v0_dashboard_widget/g, projectName),
       "utf-8",
     );
   }
@@ -211,7 +211,7 @@ export function createProjectFromTemplate(projectName: string): string {
     !fs.existsSync(PROJECT_TEMPLATE_DIR) ||
     !fs.statSync(PROJECT_TEMPLATE_DIR).isDirectory()
   ) {
-    throw new Error("Template directory not found: v0-dashboard-poc");
+    throw new Error("Template directory not found: v0-dashboard-widget");
   }
 
   fs.mkdirSync(PROJECTS_DIR, { recursive: true });
